@@ -115,19 +115,19 @@ public static class AerBuilder
         if(forward.OutputOf(forward.Pieces[0])!=-2||forward.OutputOf(forward.Pieces[3])!=2)throw new Exception("Duplicate modifiers must apply only once");
         foreach(var voxel in forward.Voxels())if(voxel.Action!=4)throw new Exception("Voxel source color lost");
         // Learning stages isolate the new effect; the finale combines two
-        // spatially separate effects without forcing amplified subtraction.
+        // simple -2 carving operation with meaningful target improvement.
         foreach(int index in new[]{10,11,12})
         {
             var stage=AerStages.All[index];var board=new EveningBoard();
             foreach(var step in stage.Solution)board.TryPlace(step.Action,step.Cells(),out _);
-            int invertedCount=0,amplifiedCount=0;
+            int invertedCount=0,amplifiedCount=0,combinedCount=0;
             foreach(var piece in board.Pieces)
             {
                 int output=board.OutputOf(piece);
-                if(output==-2)throw new Exception("Introductory late solutions must not require combined S/T");
+                if(output==-2){combinedCount++;if(index!=12)throw new Exception("Only the finale teaches combined S/T");}
                 if(output<0)invertedCount++;if(output==2)amplifiedCount++;
             }
-            if(invertedCount!=(index==11?0:1)||amplifiedCount!=(index==10?0:1))throw new Exception("Each new effect must have one readable subject");
+            if(invertedCount!=(index==11?0:1)||amplifiedCount!=(index==11?1:0)||combinedCount!=(index==12?1:0))throw new Exception("Each new effect must have one readable subject");
             if(stage.Supply!=(index==12?6:4))throw new Exception("Late solution complexity increased");
             foreach(int action in index==12?new[]{1,0}:new[]{stage.RequiredAction})
             {
@@ -135,6 +135,12 @@ public static class AerBuilder
                 if(stage.Complete(without))throw new Exception("Removing a taught effect must not solve the target");
             }
         }
+        // Alternative -1-only reconstruction is valid: the finale rewards -2
+        // through a shorter six-piece solution, never an extra clear condition.
+        var finale=AerStages.All[12];var alternative=new EveningBoard();
+        foreach(var step in finale.Solution)if(step.Action!=0)alternative.TryPlace(step.Action,step.Cells(),out _);
+        alternative.TryPlace(4,new AerStage.Step(4,1,2).Cells(),out _);
+        if(finale.Similarity(alternative)!=100||!finale.Complete(alternative))throw new Exception("Alternative finale solution must remain valid");
         var swatches=new[]{"FEECB1","FFB2BC","D4B4EF","94E8E9","FFDBEE"};
         for(int i=0;i<5;i++)if(ColorUtility.ToHtmlStringRGB(EveningBoard.Colors[i])!=swatches[i])throw new Exception("Palette mismatch");
         Debug.Log("AER_RULES_PASSED: 13 solutions; whole-mino inversion/amplification; -2 combinations; no stacking/chaining; order independence; source colors; unlocks and required effects");

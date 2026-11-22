@@ -72,9 +72,9 @@ public static class AerStages
         // T alone doubles one O. The other two O pieces form a readable step;
         // simultaneous S/T inversion is available but never required here.
         new AerStage("환경 제어실","NAME-08","",M(4,0,1),M(4,2,1),M(4,1,2),M(0,0,0)),
-        // Reuse the S notch and add a separately amplified L. Each operator
-        // affects just one ordinary mino; no -2 combination or rotation needed.
-        new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(4,0,1),M(4,1,1),M(4,0,2),M(3,3,1),M(1,0,3),M(0,2,0))
+        // Double an O stack, then carve its lower row with one -2 O.
+        // S and T share one footprint; six pieces, no rotations required.
+        new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(4,1,1),M(4,1,1),M(3,3,1),M(4,1,2),M(1,0,3),M(0,0,3))
     };
     public static readonly int[] BuildingStages={3,4,5,6,8,9,10,11};
     static AerStage.Step M(int action,int x,int y,int turns=0)=>new AerStage.Step(action,x,y,turns);
