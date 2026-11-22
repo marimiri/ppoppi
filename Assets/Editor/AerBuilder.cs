@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.IO;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.SceneManagement;
@@ -127,23 +128,74 @@ public static class AerBuilder
                 if(output==-2){combinedCount++;if(index!=12)throw new Exception("Only the finale teaches combined S/T");}
                 if(output<0)invertedCount++;if(output==2)amplifiedCount++;
             }
-            if(invertedCount!=(index==11?0:1)||amplifiedCount!=(index==11?1:0)||combinedCount!=(index==12?1:0))throw new Exception("Each new effect must have one readable subject");
-            if(stage.Supply!=(index==12?6:4))throw new Exception("Late solution complexity increased");
+            if(invertedCount!=(index==11?0:1)||amplifiedCount!=(index==12?2:index==11?1:0)||combinedCount!=(index==12?1:0))throw new Exception("Each new effect must have one readable subject");
+            if(stage.Supply!=(index==12?7:4))throw new Exception("Late solution complexity increased");
             foreach(int action in index==12?new[]{1,0}:new[]{stage.RequiredAction})
             {
                 var without=new EveningBoard();foreach(var step in stage.Solution)if(step.Action!=action)without.TryPlace(step.Action,step.Cells(),out _);
                 if(stage.Complete(without))throw new Exception("Removing a taught effect must not solve the target");
             }
         }
-        // Alternative -1-only reconstruction is valid: the finale rewards -2
-        // through a shorter six-piece solution, never an extra clear condition.
-        var finale=AerStages.All[12];var alternative=new EveningBoard();
-        foreach(var step in finale.Solution)if(step.Action!=0)alternative.TryPlace(step.Action,step.Cells(),out _);
-        alternative.TryPlace(4,new AerStage.Step(4,1,2).Cells(),out _);
+        // Match the waterworks target scale, without enforcing a play-time
+        // piece limit or an operator-specific completion condition.
+        var finale=AerStages.All[12];var finalBoard=new EveningBoard();var waterBoard=new EveningBoard();
+        foreach(var step in finale.Solution)finalBoard.TryPlace(step.Action,step.Cells(),out _);
+        foreach(var step in AerStages.All[9].Solution)waterBoard.TryPlace(step.Action,step.Cells(),out _);
+        if(finalBoard.MaxHeight!=waterBoard.MaxHeight||finalBoard.Voxels().Count!=waterBoard.Voxels().Count||Math.Abs(finalBoard.Coverage-waterBoard.Coverage)>2)throw new Exception("Finale exceeds waterworks target scale");
+        CheckPositiveShortcut(finale);
+        var withoutCut=new EveningBoard();
+        foreach(var piece in finalBoard.Pieces)if(finalBoard.OutputOf(piece)!=-2)withoutCut.TryPlace(piece.Action,piece.Cells,out _);
+        if(withoutCut.Voxels().Count-finalBoard.Voxels().Count<4||finale.Complete(withoutCut))throw new Exception("Minus-two cut must visibly remove a two-layer pair");
+        // With unlimited supply, doubled outputs can always be replaced by
+        // duplicate ordinary pieces. Preserve such creative alternatives.
+        var alternative=new EveningBoard();
+        foreach(var piece in finalBoard.Pieces)if(piece.Action!=0)
+        {
+            alternative.TryPlace(piece.Action,piece.Cells,out _);
+            if(Math.Abs(finalBoard.OutputOf(piece))==2)alternative.TryPlace(piece.Action,piece.Cells,out _);
+        }
         if(finale.Similarity(alternative)!=100||!finale.Complete(alternative))throw new Exception("Alternative finale solution must remain valid");
         var swatches=new[]{"FEECB1","FFB2BC","D4B4EF","94E8E9","FFDBEE"};
         for(int i=0;i<5;i++)if(ColorUtility.ToHtmlStringRGB(EveningBoard.Colors[i])!=swatches[i])throw new Exception("Palette mismatch");
         Debug.Log("AER_RULES_PASSED: 13 solutions; whole-mino inversion/amplification; -2 combinations; no stacking/chaining; order independence; source colors; unlocks and required effects");
+    }    // For a 20-voxel target, 85% IoU with positive four-cell pieces can only
+    // occur at volume 20 with at most one missing and one surplus voxel.
+    // T-only outputs are repeated positive pieces, so this also covers T alone.
+    static void CheckPositiveShortcut(AerStage stage)
+    {
+        int[] target=new int[25];for(int y=0;y<5;y++)for(int x=0;x<5;x++)target[x+y*5]=stage.Target[x,y];
+        var placements=new List<int[]>();var seen=new HashSet<string>();
+        foreach(int action in new[]{2,3,4})for(int mirror=0;mirror<2;mirror++)for(int turn=0;turn<4;turn++)
+        {
+            var shape=(Vector2Int[])EveningBoard.Shapes[action].Clone();
+            if(mirror==1)shape=EveningBoard.Mirror(shape);
+            for(int r=0;r<turn;r++)shape=EveningBoard.Rotate(shape,1);
+            for(int y=0;y<5;y++)for(int x=0;x<5;x++)
+            {
+                var cells=(Vector2Int[])shape.Clone();for(int i=0;i<4;i++)cells[i]+=new Vector2Int(x,y);
+                if(!EveningBoard.ValidCells(cells))continue;
+                int[] ids=Array.ConvertAll(cells,c=>c.x+c.y*5);Array.Sort(ids);
+                if(seen.Add(string.Join(",",ids)))placements.Add(ids);
+            }
+        }
+        if(PositiveFive(target,0,0,false,placements,new HashSet<string>()))throw new Exception("Final weather has a positive-only 85% shortcut");
+    }
+    static bool PositiveFive(int[] remaining,int depth,int surplus,bool skipped,List<int[]> placements,HashSet<string> memo)
+    {
+        if(depth==5){int missing=0;foreach(int h in remaining)missing+=h;return missing<=1;}
+        int first=Array.FindIndex(remaining,h=>h>0);if(first<0)return false;
+        string key=string.Join(",",remaining)+"/"+depth+"/"+surplus+"/"+skipped;
+        if(!memo.Add(key))return false;
+        if(!skipped){var rest=(int[])remaining.Clone();rest[first]--;if(PositiveFive(rest,depth,surplus,true,placements,memo))return true;}
+        foreach(var ids in placements)
+        {
+            if(Array.IndexOf(ids,first)<0)continue;
+            int extra=0;foreach(int i in ids)if(remaining[i]==0)extra++;
+            if(extra+surplus>1)continue;
+            var rest=(int[])remaining.Clone();foreach(int i in ids)rest[i]=Math.Max(0,rest[i]-1);
+            if(PositiveFive(rest,depth+1,surplus+extra,skipped,placements,memo))return true;
+        }
+        return false;
     }
 }
 #endif

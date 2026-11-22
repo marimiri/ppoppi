@@ -668,7 +668,7 @@ public sealed class ProtocolAer:MonoBehaviour
                 if(hint<0||hintPieceId>=0||held!=Stage.Solution[hint].Action)throw new Exception("Hint failed to identify next missing mino");
                 int stepIndex=hint;var expected=Stage.Solution[hint].Cells();
                 RequestHint();if(hint!=stepIndex)throw new Exception("Repeated hint clicks must not skip an unplaced step");
-                if(n==12&&(hint==4||hint==5))yield return Shot(directory,"final-hint-step-"+(hint+1));
+                if(n==12&&(hint==5||hint==6))yield return Shot(directory,"final-hint-step-"+(hint+1));
                 onGrid=true;hover=hintAnchor;RefreshPlacementPreview();
                 if(!AerHints.SameCells(Candidate(),expected))throw new Exception("Hint orientation/anchor does not match the highlighted footprint");
                 int count=board.Pieces.Count;HandlePuzzleClick(Grid.position+new Vector2((hintAnchor.x+.5f)*88,(hintAnchor.y+.5f)*88));
@@ -677,7 +677,7 @@ public sealed class ProtocolAer:MonoBehaviour
             if(!Stage.Complete(board))throw new Exception("Following hints did not solve stage "+n);
             if(n==10&&(board.Count(1)==0||!Stage.RequiredMinoUsed(board)))throw new Exception("Wind hints did not require meaningful S use");
         }
-        EnterStage(12);newMino=-1;Select(4);hover=new Vector2Int(3,3);Place();
+        EnterStage(12);newMino=-1;Select(4);hover=new Vector2Int(0,3);Place();
         RequestHint();
         if(hintPieceId<0||held>=0||board.TopAt(hintAnchor).Id!=hintPieceId)throw new Exception("A mismatched plan must receive a clickable correction hint");
         yield return Shot(directory,"hint-red-removal");
