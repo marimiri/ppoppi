@@ -560,7 +560,7 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         int a=newMino;Modal(new Rect(380,205,680,480),"",EveningBoard.Names[a]+" 미노 추가");
         DrawMino(new Rect(440,345,140,140),a);
-        string effect=a==1?"한 칸이라도 겹친 O·L·I 전체 반전\n일반 미노의 네 칸 모두 −1\nT도 겹치면 −2 / S 자체 높이 없음\n중복 반전 없음 · 빨간 −로 표시":a==0?"한 칸이라도 겹친 O·L·I 전체 증폭\n일반 미노의 네 칸 모두 ×2\nS도 겹치면 −2 / T 자체 높이 없음\n중복 증폭 없음 · 노란 두 줄로 표시":"덮는 칸마다 높이 +1";
+        string effect=a==1?"겹쳐져 있는 모든 블록이 음의 깊이를 갖도록 만든다.":a==0?"겹쳐져 있는 모든 블록이 기존의 2배 높이를 갖도록 만든다.\nS미노와 겹쳐져 있으면 2배의 음의 깊이를 갖도록 만든다.":"덮는 칸마다 높이 +1";
         Text(new Rect(625,335,390,160),effect,20,Ink,true);
         if(Button(new Rect(420,565,600,65),"확인",true,true)){knownMinos.Add(a);newMino=-1;}
     }
