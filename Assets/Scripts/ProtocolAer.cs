@@ -504,6 +504,12 @@ public sealed class ProtocolAer:MonoBehaviour
             var top=board.TopAt(new Vector2Int(x,y));Color color=top==null?Panel:EveningBoard.Colors[top.Action];
             Fill(r,top==null?Panel:Color.Lerp(color,Deep,Mathf.Min(.36f,Mathf.Max(0,n-1)*.09f)));Border(r,Line);
             if(top!=null){Fill(new Rect(r.x+6,r.y+6,76,4),color);Fill(new Rect(r.x+6,r.y+10,4,68),color);Fill(new Rect(r.x+12,r.yMax-10,70,4),Color.Lerp(color,Deep,.5f));}
+            if(top!=null&&top.Action>=2)
+            {
+                int output=board.OutputOf(top);
+                if(output<0)Fill(new Rect(r.x+12,r.y+14,16,4),Hex("FF6475"));
+                if(Math.Abs(output)==2){Fill(new Rect(r.xMax-24,r.y+12,4,12),Hex("FEECB1"));Fill(new Rect(r.xMax-16,r.y+12,4,12),Hex("FEECB1"));}
+            }
             if(evaluated&&n!=Stage.Target[x,y])Border(new Rect(r.x+3,r.y+3,82,82),Pink,2);
         }
         if(held>=0&&onGrid&&!executing&&!success)
@@ -554,8 +560,8 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         int a=newMino;Modal(new Rect(380,205,680,480),"",EveningBoard.Names[a]+" 미노 추가");
         DrawMino(new Rect(440,345,140,140),a);
-        string effect=a==1?"덮는 칸마다 높이 −1":a==0?"덮는 칸마다 높이 +2":"덮는 칸마다 높이 +1";
-        Text(new Rect(625,345,390,140),effect,23,Ink,true);
+        string effect=a==1?"한 칸이라도 겹친 O·L·I 전체 반전\n일반 미노의 네 칸 모두 −1\nT도 겹치면 −2 / S 자체 높이 없음\n중복 반전 없음 · 빨간 −로 표시":a==0?"한 칸이라도 겹친 O·L·I 전체 증폭\n일반 미노의 네 칸 모두 ×2\nS도 겹치면 −2 / T 자체 높이 없음\n중복 증폭 없음 · 노란 두 줄로 표시":"덮는 칸마다 높이 +1";
+        Text(new Rect(625,335,390,160),effect,20,Ink,true);
         if(Button(new Rect(420,565,600,65),"확인",true,true)){knownMinos.Add(a);newMino=-1;}
     }
     void DrawSuccess()
@@ -619,7 +625,7 @@ public sealed class ProtocolAer:MonoBehaviour
 
         EnterStage(12);newMino=-1;Select(4);onGrid=true;hover=new Vector2Int(1,1);Place();
         Select(1);hover=new Vector2Int(1,1);RefreshPlacementPreview();
-        if(placementPreview==null||placementPreview.Heights()[1,1]!=0||board.Heights()[1,1]!=1||board.Pieces.Count!=1)throw new Exception("S hover must preview subtraction without changing the plan");
+        if(placementPreview==null||placementPreview.Heights()[1,1]!=0||placementPreview.Heights()[2,2]!=0||board.Heights()[1,1]!=1||board.Pieces.Count!=1)throw new Exception("S hover must reverse the whole overlapping ordinary mino without committing");
         yield return Shot(directory,"live-S-subtraction-before-click");
         hover=new Vector2Int(4,4);RefreshPlacementPreview();
         if(placementPreview!=null||held!=1)throw new Exception("Invalid hover must hide tentative result while retaining selection");
@@ -635,13 +641,14 @@ public sealed class ProtocolAer:MonoBehaviour
         Select(3);onGrid=true;hover=new Vector2Int(2,1);RefreshPlacementPreview();Rotate(1);
         if(placementPreview==null||placementPreview.Heights()[0,1]!=1||board.Pieces.Count!=0)throw new Exception("Rotation must update the tentative 3D result");
         Mirror();if(placementPreview==null||placementPreview.Heights()[4,1]!=1)throw new Exception("Mirroring must update the tentative 3D result");
+        ReturnHeld();Select(4);hover=new Vector2Int(1,1);Place();
         Select(0);hover=new Vector2Int(1,1);RefreshPlacementPreview();
-        if(placementPreview==null||placementPreview.MaxHeight!=2||board.Pieces.Count!=0)throw new Exception("T hover must preview its doubled height");
+        if(placementPreview==null||placementPreview.MaxHeight!=2||board.MaxHeight!=1||board.Pieces.Count!=1)throw new Exception("T hover must amplify an existing ordinary mino without creating its own volume");
         HandlePuzzleClick(Preview.center);RefreshPlacementPreview();
         if(held!=0||placementPreview!=null)throw new Exception("Orbiting the 3D view must preserve the held piece and clear the board hover");
         HandlePuzzleClick(new Vector2(760,700));if(held!=0)throw new Exception("Transform controls must not cancel held pieces");
         HandlePuzzleClick(new Vector2(1055,800));
-        if(held>=0||placementPreview!=null||board.Pieces.Count!=0||cleared[12])throw new Exception("Clicking blank space must cancel without committing or clearing");
+        if(held>=0||placementPreview!=null||board.Pieces.Count!=1||cleared[12])throw new Exception("Clicking blank space must cancel without committing or clearing");
         EnterStage(0);
         Debug.Log("AER_PLACEMENT_PASSED: live noncommitting hover, movement, rotate/mirror, S/T effects, invalid-click returns and UI controls");
     }
@@ -661,7 +668,7 @@ public sealed class ProtocolAer:MonoBehaviour
                 if(hint<0||hintPieceId>=0||held!=Stage.Solution[hint].Action)throw new Exception("Hint failed to identify next missing mino");
                 int stepIndex=hint;var expected=Stage.Solution[hint].Cells();
                 RequestHint();if(hint!=stepIndex)throw new Exception("Repeated hint clicks must not skip an unplaced step");
-                if(n==12&&(hint==3||hint==6))yield return Shot(directory,"final-hint-step-"+(hint+1));
+                if(n==12&&(hint==6||hint==7))yield return Shot(directory,"final-hint-step-"+(hint+1));
                 onGrid=true;hover=hintAnchor;RefreshPlacementPreview();
                 if(!AerHints.SameCells(Candidate(),expected))throw new Exception("Hint orientation/anchor does not match the highlighted footprint");
                 int count=board.Pieces.Count;HandlePuzzleClick(Grid.position+new Vector2((hintAnchor.x+.5f)*88,(hintAnchor.y+.5f)*88));

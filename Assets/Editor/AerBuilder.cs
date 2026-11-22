@@ -65,7 +65,7 @@ public static class AerBuilder
             if(stage.Complete(missing)||stage.RequiredMinoUsed(missing))throw new Exception("New mino requirement bypassed");
         }
         var wind=AerStages.All[10];int windVolume=0;foreach(int height in wind.Target)windVolume+=height;
-        if(windVolume!=17||windVolume%4==0||wind.Allows(0))throw new Exception("Wind target must intrinsically require S: positive-only volume is a multiple of four");
+        if(windVolume!=14||windVolume%4==0||wind.Allows(0))throw new Exception("Wind target must intrinsically require S: positive-only volume is a multiple of four");
         var oldWindExploit=new EveningBoard();
         foreach(var step in new[]{new AerStage.Step(3,0,0,2),new AerStage.Step(4,1,1),new AerStage.Step(3,1,2,2),new AerStage.Step(3,2,2,2)})oldWindExploit.TryPlace(step.Action,step.Cells(),out _);
         if(wind.Differences(oldWindExploit)==0||wind.Complete(oldWindExploit))throw new Exception("Old S-free wind reconstruction still accepted");
@@ -94,18 +94,36 @@ public static class AerBuilder
         var unlimited=new EveningBoard();for(int i=0;i<100;i++)if(!unlimited.TryPlace(4,(Vector2Int[])EveningBoard.Shapes[4].Clone(),out _))throw new Exception("Unexpected piece cap");
         if(unlimited.MaxHeight!=100)throw new Exception("Unlimited overlap failed");
         var effectTest=new EveningBoard();effectTest.TryPlace(0,(Vector2Int[])EveningBoard.Shapes[0].Clone(),out _);
-        if(effectTest.MaxHeight!=2)throw new Exception("T mino must add 2");
-        var combined=new[]{new AerStage.Step(4,1,1),new AerStage.Step(1,0,1)};
+        effectTest.TryPlace(1,(Vector2Int[])EveningBoard.Shapes[1].Clone(),out _);
+        if(effectTest.MaxHeight!=0||effectTest.Voxels().Count!=0)throw new Exception("S/T operators must not create their own volume");
+        var inverted=new EveningBoard();
+        foreach(var s in new[]{new AerStage.Step(4,1,1),new AerStage.Step(1,0,1)})inverted.TryPlace(s.Action,s.Cells(),out _);
+        if(inverted.OutputOf(inverted.Pieces[0])!=-1||inverted.Heights()[2,2]!=0)throw new Exception("S must reverse all four ordinary cells, including cells outside its footprint");
+        var amplifier=new EveningBoard();
+        foreach(var s in new[]{new AerStage.Step(4,1,1),new AerStage.Step(0,1,1)})amplifier.TryPlace(s.Action,s.Cells(),out _);
+        if(amplifier.OutputOf(amplifier.Pieces[0])!=2||amplifier.Heights()[1,2]!=2||amplifier.Heights()[3,1]!=0)throw new Exception("T must amplify the whole ordinary mino but not fill its own empty cells");
+        amplifier.TryPlace(0,new AerStage.Step(0,1,1).Cells(),out _);
+        if(amplifier.OutputOf(amplifier.Pieces[0])!=2||amplifier.MaxHeight!=2)throw new Exception("Repeated T must not amplify recursively");
+        foreach(var v in amplifier.Voxels())if(v.Action!=4||v.PieceId!=amplifier.Pieces[0].Id)throw new Exception("Amplified voxels must retain their ordinary source mino");
+        var combined=new[]{new AerStage.Step(4,1,1),new AerStage.Step(1,0,1),new AerStage.Step(0,1,1),new AerStage.Step(4,2,2)};
         var forward=new EveningBoard();var reverse=new EveningBoard();
         foreach(var s in combined)forward.TryPlace(s.Action,s.Cells(),out _);
         for(int i=combined.Length-1;i>=0;i--)reverse.TryPlace(combined[i].Action,combined[i].Cells(),out _);
-        for(int x=0;x<5;x++)for(int y=0;y<5;y++)if(forward.Heights()[x,y]!=reverse.Heights()[x,y])throw new Exception("Subtraction must be order independent");
-        if(forward.Heights()[1,1]!=0||forward.Heights()[2,2]!=1)throw new Exception("S mino must subtract one and clamp final height to zero");
+        for(int x=0;x<5;x++)for(int y=0;y<5;y++)if(forward.Heights()[x,y]!=reverse.Heights()[x,y])throw new Exception("Modifier effects must be placement-order independent");
+        if(forward.OutputOf(forward.Pieces[0])!=-2||forward.OutputOf(forward.Pieces[3])!=2||forward.Heights()[2,2]!=0||forward.Heights()[3,3]!=2)throw new Exception("S+T must produce -2 without chaining through neighboring minos");
+        forward.TryPlace(1,new AerStage.Step(1,0,1).Cells(),out _);forward.TryPlace(0,new AerStage.Step(0,1,1).Cells(),out _);
+        if(forward.OutputOf(forward.Pieces[0])!=-2||forward.OutputOf(forward.Pieces[3])!=2)throw new Exception("Duplicate modifiers must apply only once");
         foreach(var voxel in forward.Voxels())if(voxel.Action!=4)throw new Exception("Voxel source color lost");
-        var amplifier=new EveningBoard();amplifier.TryPlace(0,(Vector2Int[])EveningBoard.Shapes[0].Clone(),out _);foreach(var v in amplifier.Voxels())if(v.Action!=0)throw new Exception("T voxel color lost");
+        foreach(int index in new[]{11,12})
+        {
+            var board=new EveningBoard();foreach(var step in AerStages.All[index].Solution)board.TryPlace(step.Action,step.Cells(),out _);
+            bool negativeDouble=false,positiveDouble=false;
+            foreach(var piece in board.Pieces){negativeDouble|=board.OutputOf(piece)==-2;positiveDouble|=board.OutputOf(piece)==2;}
+            if(!negativeDouble||!positiveDouble)throw new Exception("Late stages must demonstrate both amplified positive and inverted minos");
+        }
         var swatches=new[]{"FEECB1","FFB2BC","D4B4EF","94E8E9","FFDBEE"};
         for(int i=0;i<5;i++)if(ColorUtility.ToHtmlStringRGB(EveningBoard.Colors[i])!=swatches[i])throw new Exception("Palette mismatch");
-        Debug.Log("AER_RULES_PASSED: 13 solutions, exact/85% matching, unlocks, required effects, unlimited supply, palette, source colors, S/T effects and boundaries");
+        Debug.Log("AER_RULES_PASSED: 13 solutions; whole-mino inversion/amplification; -2 combinations; no stacking/chaining; order independence; source colors; unlocks and required effects");
     }
 }
 #endif
