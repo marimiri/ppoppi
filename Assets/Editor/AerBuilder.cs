@@ -65,7 +65,7 @@ public static class AerBuilder
             if(stage.Complete(missing)||stage.RequiredMinoUsed(missing))throw new Exception("New mino requirement bypassed");
         }
         var wind=AerStages.All[10];int windVolume=0;foreach(int height in wind.Target)windVolume+=height;
-        if(windVolume!=14||windVolume%4==0||wind.Allows(0))throw new Exception("Wind target must intrinsically require S: positive-only volume is a multiple of four");
+        if(windVolume!=6||windVolume%4==0||wind.Allows(0))throw new Exception("Wind target must intrinsically require S: positive-only volume is a multiple of four");
         var oldWindExploit=new EveningBoard();
         foreach(var step in new[]{new AerStage.Step(3,0,0,2),new AerStage.Step(4,1,1),new AerStage.Step(3,1,2,2),new AerStage.Step(3,2,2,2)})oldWindExploit.TryPlace(step.Action,step.Cells(),out _);
         if(wind.Differences(oldWindExploit)==0||wind.Complete(oldWindExploit))throw new Exception("Old S-free wind reconstruction still accepted");
@@ -74,7 +74,7 @@ public static class AerBuilder
         var repeatAdvice=AerHints.Next(repeatStage,repeated);
         if(repeatAdvice.Type!=AerHints.Kind.Place||repeatAdvice.Step!=1)throw new Exception("Hints must count duplicate placements separately");
         if(AerStages.All.Length!=13||AerStages.BuildingStages.Length!=8||!AerStages.All[7].Weather||!AerStages.All[12].Weather)throw new Exception("Progression layout changed");
-        int[] nameSteps={3,4,3,4,4,5,6,7};
+        int[] nameSteps={3,4,3,4,4,5,4,4};
         for(int i=0;i<8;i++)
         {
             var stage=AerStages.All[AerStages.BuildingStages[i]];int max=0;foreach(int h in stage.Target)max=Math.Max(max,h);
@@ -84,7 +84,7 @@ public static class AerBuilder
         foreach(int index in new[]{7,12})
         {
             int max=0;foreach(int h in AerStages.All[index].Target)max=Math.Max(max,h);
-            if(max!=4)throw new Exception("Weather milestones should combine four height levels");
+            if(max!=(index==7?4:2))throw new Exception("Weather height envelope changed");
         }
         foreach(int action in new[]{0,1,2,3,4})
         {
@@ -114,12 +114,26 @@ public static class AerBuilder
         forward.TryPlace(1,new AerStage.Step(1,0,1).Cells(),out _);forward.TryPlace(0,new AerStage.Step(0,1,1).Cells(),out _);
         if(forward.OutputOf(forward.Pieces[0])!=-2||forward.OutputOf(forward.Pieces[3])!=2)throw new Exception("Duplicate modifiers must apply only once");
         foreach(var voxel in forward.Voxels())if(voxel.Action!=4)throw new Exception("Voxel source color lost");
-        foreach(int index in new[]{11,12})
+        // Learning stages isolate the new effect; the finale combines two
+        // spatially separate effects without forcing amplified subtraction.
+        foreach(int index in new[]{10,11,12})
         {
-            var board=new EveningBoard();foreach(var step in AerStages.All[index].Solution)board.TryPlace(step.Action,step.Cells(),out _);
-            bool negativeDouble=false,positiveDouble=false;
-            foreach(var piece in board.Pieces){negativeDouble|=board.OutputOf(piece)==-2;positiveDouble|=board.OutputOf(piece)==2;}
-            if(!negativeDouble||!positiveDouble)throw new Exception("Late stages must demonstrate both amplified positive and inverted minos");
+            var stage=AerStages.All[index];var board=new EveningBoard();
+            foreach(var step in stage.Solution)board.TryPlace(step.Action,step.Cells(),out _);
+            int invertedCount=0,amplifiedCount=0;
+            foreach(var piece in board.Pieces)
+            {
+                int output=board.OutputOf(piece);
+                if(output==-2)throw new Exception("Introductory late solutions must not require combined S/T");
+                if(output<0)invertedCount++;if(output==2)amplifiedCount++;
+            }
+            if(invertedCount!=(index==11?0:1)||amplifiedCount!=(index==10?0:1))throw new Exception("Each new effect must have one readable subject");
+            if(stage.Supply!=(index==12?6:4))throw new Exception("Late solution complexity increased");
+            foreach(int action in index==12?new[]{1,0}:new[]{stage.RequiredAction})
+            {
+                var without=new EveningBoard();foreach(var step in stage.Solution)if(step.Action!=action)without.TryPlace(step.Action,step.Cells(),out _);
+                if(stage.Complete(without))throw new Exception("Removing a taught effect must not solve the target");
+            }
         }
         var swatches=new[]{"FEECB1","FFB2BC","D4B4EF","94E8E9","FFDBEE"};
         for(int i=0;i<5;i++)if(ColorUtility.ToHtmlStringRGB(EveningBoard.Colors[i])!=swatches[i])throw new Exception("Palette mismatch");

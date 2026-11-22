@@ -668,7 +668,7 @@ public sealed class ProtocolAer:MonoBehaviour
                 if(hint<0||hintPieceId>=0||held!=Stage.Solution[hint].Action)throw new Exception("Hint failed to identify next missing mino");
                 int stepIndex=hint;var expected=Stage.Solution[hint].Cells();
                 RequestHint();if(hint!=stepIndex)throw new Exception("Repeated hint clicks must not skip an unplaced step");
-                if(n==12&&(hint==6||hint==7))yield return Shot(directory,"final-hint-step-"+(hint+1));
+                if(n==12&&(hint==4||hint==5))yield return Shot(directory,"final-hint-step-"+(hint+1));
                 onGrid=true;hover=hintAnchor;RefreshPlacementPreview();
                 if(!AerHints.SameCells(Candidate(),expected))throw new Exception("Hint orientation/anchor does not match the highlighted footprint");
                 int count=board.Pieces.Count;HandlePuzzleClick(Grid.position+new Vector2((hintAnchor.x+.5f)*88,(hintAnchor.y+.5f)*88));

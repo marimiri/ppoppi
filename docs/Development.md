@@ -10,7 +10,7 @@ Targets are generated from valid example solutions. Names require exact height m
 
 Name targets add offset overlaps, turned L shapes and crossing I shapes while introducing one new effect at a time. Their example solutions use 3 / 4 / 3 / 4 / 4 / 5 / 6 / 7 placements, with at most three height levels. Weather targets combine wider footprints and four height levels (6 / 8 example placements). These are design guidelines, not placement limits or a claim about the shortest possible solution. Actual perceived difficulty still benefits from player testing. The three tutorial targets remain unchanged.
 
-The reworked Windway target contains 14 voxels, so O/L/I alone cannot reproduce it: positive-only volume is a multiple of four. The eighth name target has 22 voxels and demonstrates both +2 and -2 ordinary minos; the final weather target has 27 voxels across all five rows/columns, with height up to four. Tutorials, names 1-6 and the first weather target are unchanged.
+The eased Windway target contains 6 voxels and uses four unrotated O/S pieces; O/L/I alone cannot reproduce its non-multiple-of-four volume. The eighth name target uses four unrotated O/T pieces, teaching amplification without subtraction. The finale uses six unrotated pieces: S reverses one O and T amplifies a separate L. Targets have maximum heights 2, 3 and 2 respectively; no late reference solution requires -2 combinations. Tutorials, names 1-6 and the first weather target are unchanged.
 
 ## Controls
 

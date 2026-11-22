@@ -66,13 +66,15 @@ public static class AerStages
         new AerStage("일조 복원","WEATHER-01","재현도 85% 이상",M(4,1,1),M(4,2,1),M(3,0,1),M(3,2,0,1),M(3,1,2,1),M(4,2,2)),
         new AerStage("기록 보관소","NAME-05","",M(4,1,1),M(3,0,0),M(2,0,2),M(4,2,2)),
         new AerStage("급수 관리소","NAME-06","",M(4,2,2),M(3,0,1),M(3,2,0,1),M(2,1,1,1),M(2,0,2)),
-        // 14 voxels cannot be made by positive-only four-cell minos. Here S
-        // reverses one whole O, including cells outside S's own footprint.
-        new AerStage("바람길 제어소","NAME-07","",M(4,0,1),M(3,1,2,1),M(2,3,1,1),M(4,0,2),M(3,0,2,3),M(1,1,0)),
-        // Includes +1, +2 and -2 ordinary minos: S and T combine without chaining.
-        new AerStage("환경 제어실","NAME-08","",M(4,2,3),M(3,1,1),M(2,2,0,1),M(2,0,1),M(3,0,1),M(1,2,3),M(0,2,2,1)),
-        // Weather milestones combine more regions/heights than the preceding names.
-        new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(4,2,0),M(3,0,3,3),M(2,0,0,1),M(4,3,0),M(3,0,2,1),M(2,1,3),M(1,3,2,1),M(0,0,2))
+        // Introduce one operator at a time: two positive O pieces, one
+        // inverted O and S carve a small notch. Six voxels require subtraction.
+        new AerStage("바람길 제어소","NAME-07","",M(4,0,1),M(4,1,1),M(4,0,2),M(1,0,3)),
+        // T alone doubles one O. The other two O pieces form a readable step;
+        // simultaneous S/T inversion is available but never required here.
+        new AerStage("환경 제어실","NAME-08","",M(4,0,1),M(4,2,1),M(4,1,2),M(0,0,0)),
+        // Reuse the S notch and add a separately amplified L. Each operator
+        // affects just one ordinary mino; no -2 combination or rotation needed.
+        new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(4,0,1),M(4,1,1),M(4,0,2),M(3,3,1),M(1,0,3),M(0,2,0))
     };
     public static readonly int[] BuildingStages={3,4,5,6,8,9,10,11};
     static AerStage.Step M(int action,int x,int y,int turns=0)=>new AerStage.Step(action,x,y,turns);
