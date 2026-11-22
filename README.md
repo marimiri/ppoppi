@@ -4,6 +4,8 @@
 
 ![게임 화면](docs/Gameplay.png)
 
+**[Windows 실행판 다운로드](https://github.com/marimiri/ppoppi/releases/latest)**
+
 ## 실행하기
 
 Windows 배포 ZIP을 **전체 압축 해제**한 뒤 `ProtocolAer.exe`를 실행하세요. 실행 파일 옆의 `ProtocolAer_Data`, `UnityPlayer.dll`, `MonoBleedingEdge`도 함께 있어야 합니다.
@@ -75,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File .\Tools\VerifyWindows.ps1
 - `Assets/Editor/AerBuilder.cs`: 해법 검사 및 Windows 빌드
 - [검증 결과](docs/검증결과.txt) · [개발 상세](docs/Development.md) · [조작 안내](조작안내.txt)
 
-`Library`, `Temp`, `Logs`, `Builds`는 Git에 포함하지 않습니다. `.meta` 파일은 에셋 연결에 필요하므로 함께 올려야 합니다. GitHub 업로드 방법은 [GitHub공유안내.txt](GitHub공유안내.txt)에 정리했습니다.
+`Library`, `Temp`, `Logs`, `Builds`는 Git에 포함하지 않습니다. `.meta` 파일은 에셋 연결에 필요하므로 함께 올려야 합니다. 개발용 원본은 이 저장소에, Windows 실행판은 [Releases](https://github.com/marimiri/ppoppi/releases/latest)에 있습니다.
 
 ## 글꼴
 
