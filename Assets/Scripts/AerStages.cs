@@ -39,7 +39,7 @@ public sealed class AerStage
     {
         // Operator introductions deliberately offer only their teaching set.
         if(Code=="NAME-07")return action==4||action==3||action==1;
-        if(Code=="NAME-08")return action==4||action==0;
+        if(Code=="NAME-08")return action==4||action==2||action==0;
         int index=Array.IndexOf(AerStages.All,this);
         return action==4||action==3&&index>=5||action==2&&index>=8||action==1&&index>=10||action==0&&index>=11;
     }
@@ -72,7 +72,7 @@ public static class AerStages
         new AerStage("급수 관리소","NAME-06","",M(4,1,1),M(4,2,1),M(3,0,1),M(2,3,0,1),M(4,2,2)),
         // Each introduction uses three ordinary pieces and one local operator.
         new AerStage("바람길 제어소","NAME-07","",M(4,1,1),M(4,2,1),M(3,0,1),M(1,1,2)),
-        new AerStage("환경 제어실","NAME-08","",M(4,1,1),M(4,2,1),M(4,2,2),M(0,0,1)),
+        new AerStage("환경 제어실","NAME-08","",M(4,1,1),M(4,2,1),M(2,0,3),M(0,0,1)),
         // Both local effects matter; their two shared cells retain raw heights.
         new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(4,1,1),M(4,2,1),M(3,0,1),M(2,0,2),M(1,1,2),M(0,0,2))
     };

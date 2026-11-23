@@ -87,7 +87,7 @@ public static class AerBuilder
             int unlock=action==0?11:action==1?10:action==2?8:action==3?5:0;
             for(int i=0;i<AerStages.All.Length;i++)
             {
-                bool expected=i==10?(action==4||action==3||action==1):i==11?(action==4||action==0):i>=unlock;
+                bool expected=i==10?(action==4||action==3||action==1):i==11?(action==4||action==2||action==0):i>=unlock;
                 if(AerStages.All[i].Allows(action)!=expected)throw new Exception("Stage teaching set/unlock timing changed");
             }
         }
@@ -98,6 +98,13 @@ public static class AerBuilder
             windProof.TryPlace(step.Action,step.Cells(),out _);
         }
         if(AerStages.All[10].Similarity(windProof)!=100||!AerStages.All[10].Complete(windProof))throw new Exception("Windway must remain solvable at 100% without I");
+        var control=AerStages.All[11];
+        if(control.SupplyOf(4)!=2||control.SupplyOf(2)!=1||control.SupplyOf(0)!=1)throw new Exception("Control room must use O O I T");
+        foreach(int action in new[]{4,2,0})
+        {
+            var without=new EveningBoard();foreach(var step in control.Solution)if(step.Action!=action)without.TryPlace(step.Action,step.Cells(),out _);
+            if(control.Complete(without))throw new Exception("Each O I T type must contribute to the reference reconstruction");
+        }
         var unlimited=new EveningBoard();for(int i=0;i<100;i++)if(!unlimited.TryPlace(4,(Vector2Int[])EveningBoard.Shapes[4].Clone(),out _))throw new Exception("Unexpected piece cap");
         if(unlimited.MaxHeight!=100)throw new Exception("Unlimited overlap failed");
         var empty=new EveningBoard();Add(empty,0,0,0);Add(empty,1,0,0);
