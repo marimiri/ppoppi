@@ -257,7 +257,7 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         previewCells=ValidPreviewCells();previewAction=previewCells==null?-1:held;placementPreview=null;
         if(previewCells==null)return;
-        // Evaluate a temporary plan so overlap, S subtraction and T amplification
+        // Evaluate a temporary plan so overlap and local S/T leveling
         // can be inspected without changing placements or stage completion.
         placementPreview=new EveningBoard();foreach(var piece in board.Pieces)placementPreview.TryPlace(piece.Action,piece.Cells,out _);
         placementPreview.TryPlace(held,previewCells,out _);
@@ -497,19 +497,15 @@ public sealed class ProtocolAer:MonoBehaviour
     }
     void DrawGrid()
     {
-        int[,] heights=board.Heights();
+        int[,] heights=board.Heights(),raw=board.BaseHeights();
         for(int y=0;y<5;y++)for(int x=0;x<5;x++)
         {
             var r=new Rect(Grid.x+x*88,Grid.y+y*88,88,88);int n=heights[x,y];
             var top=board.TopAt(new Vector2Int(x,y));Color color=top==null?Panel:EveningBoard.Colors[top.Action];
             Fill(r,top==null?Panel:Color.Lerp(color,Deep,Mathf.Min(.36f,Mathf.Max(0,n-1)*.09f)));Border(r,Line);
             if(top!=null){Fill(new Rect(r.x+6,r.y+6,76,4),color);Fill(new Rect(r.x+6,r.y+10,4,68),color);Fill(new Rect(r.x+12,r.yMax-10,70,4),Color.Lerp(color,Deep,.5f));}
-            if(top!=null&&top.Action>=2)
-            {
-                int output=board.OutputOf(top);
-                if(output<0)Fill(new Rect(r.x+12,r.y+14,16,4),Hex("FF6475"));
-                if(Math.Abs(output)==2){Fill(new Rect(r.xMax-24,r.y+12,4,12),Hex("FEECB1"));Fill(new Rect(r.xMax-16,r.y+12,4,12),Hex("FEECB1"));}
-            }
+            if(n<raw[x,y])Fill(new Rect(r.x+12,r.y+14,16,4),Hex("FF6475"));
+            if(n>raw[x,y]){Fill(new Rect(r.xMax-24,r.y+12,4,12),Hex("FEECB1"));Fill(new Rect(r.xMax-16,r.y+12,4,12),Hex("FEECB1"));}
             if(evaluated&&n!=Stage.Target[x,y])Border(new Rect(r.x+3,r.y+3,82,82),Pink,2);
         }
         if(held>=0&&onGrid&&!executing&&!success)
@@ -560,7 +556,7 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         int a=newMino;Modal(new Rect(380,205,680,480),"",EveningBoard.Names[a]+" 미노 추가");
         DrawMino(new Rect(440,345,140,140),a);
-        string effect=a==1?"겹쳐져 있는 모든 블록이 음의 깊이를 갖도록 만든다.":a==0?"겹쳐져 있는 모든 블록이 기존의 2배 높이를 갖도록 만든다.\nS미노와 겹쳐져 있으면 2배의 음의 깊이를 갖도록 만든다.":"덮는 칸마다 높이 +1";
+        string effect=a==1?"덮은 네 칸을 그중 가장 낮은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":a==0?"덮은 네 칸을 그중 가장 높은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":"덮는 칸마다 높이 +1";
         Text(new Rect(625,335,390,160),effect,20,Ink,true);
         if(Button(new Rect(420,565,600,65),"확인",true,true)){knownMinos.Add(a);newMino=-1;}
     }
@@ -624,9 +620,9 @@ public sealed class ProtocolAer:MonoBehaviour
         if(held>=0||placementPreview!=null||board.Pieces.Count!=0)throw new Exception("Invalid board click must return held piece and remove preview");
 
         EnterStage(12);newMino=-1;Select(4);onGrid=true;hover=new Vector2Int(1,1);Place();
-        Select(1);hover=new Vector2Int(1,1);RefreshPlacementPreview();
-        if(placementPreview==null||placementPreview.Heights()[1,1]!=0||placementPreview.Heights()[2,2]!=0||board.Heights()[1,1]!=1||board.Pieces.Count!=1)throw new Exception("S hover must reverse the whole overlapping ordinary mino without committing");
-        yield return Shot(directory,"live-S-subtraction-before-click");
+        Select(1);hover=new Vector2Int(2,1);RefreshPlacementPreview();
+        if(placementPreview==null||placementPreview.Heights()[1,1]!=1||placementPreview.Heights()[1,2]!=0||placementPreview.Heights()[2,2]!=0||board.Heights()[1,1]!=1||board.Pieces.Count!=1)throw new Exception("S hover must lower only its footprint to the original minimum without committing");
+        yield return Shot(directory,"live-S-minimum-before-click");
         hover=new Vector2Int(4,4);RefreshPlacementPreview();
         if(placementPreview!=null||held!=1)throw new Exception("Invalid hover must hide tentative result while retaining selection");
         HandlePuzzleClick(Grid.position+new Vector2(4.5f*88,4.5f*88));
@@ -643,7 +639,7 @@ public sealed class ProtocolAer:MonoBehaviour
         Mirror();if(placementPreview==null||placementPreview.Heights()[4,1]!=1)throw new Exception("Mirroring must update the tentative 3D result");
         ReturnHeld();Select(4);hover=new Vector2Int(1,1);Place();
         Select(0);hover=new Vector2Int(1,1);RefreshPlacementPreview();
-        if(placementPreview==null||placementPreview.MaxHeight!=2||board.MaxHeight!=1||board.Pieces.Count!=1)throw new Exception("T hover must amplify an existing ordinary mino without creating its own volume");
+        if(placementPreview==null||placementPreview.MaxHeight!=1||placementPreview.Heights()[3,1]!=1||board.MaxHeight!=1||board.Pieces.Count!=1)throw new Exception("T hover must raise only its footprint to the original maximum without committing");
         HandlePuzzleClick(Preview.center);RefreshPlacementPreview();
         if(held!=0||placementPreview!=null)throw new Exception("Orbiting the 3D view must preserve the held piece and clear the board hover");
         HandlePuzzleClick(new Vector2(760,700));if(held!=0)throw new Exception("Transform controls must not cancel held pieces");
@@ -668,7 +664,7 @@ public sealed class ProtocolAer:MonoBehaviour
                 if(hint<0||hintPieceId>=0||held!=Stage.Solution[hint].Action)throw new Exception("Hint failed to identify next missing mino");
                 int stepIndex=hint;var expected=Stage.Solution[hint].Cells();
                 RequestHint();if(hint!=stepIndex)throw new Exception("Repeated hint clicks must not skip an unplaced step");
-                if(n==12&&(hint==5||hint==6))yield return Shot(directory,"final-hint-step-"+(hint+1));
+                if(n==12&&(hint==4||hint==5))yield return Shot(directory,"final-hint-step-"+(hint+1));
                 onGrid=true;hover=hintAnchor;RefreshPlacementPreview();
                 if(!AerHints.SameCells(Candidate(),expected))throw new Exception("Hint orientation/anchor does not match the highlighted footprint");
                 int count=board.Pieces.Count;HandlePuzzleClick(Grid.position+new Vector2((hintAnchor.x+.5f)*88,(hintAnchor.y+.5f)*88));

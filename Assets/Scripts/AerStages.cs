@@ -57,24 +57,21 @@ public static class AerStages
         new AerStage("첫 번째 평면","01 / FOOTPRINT","블록 하나를 배치해보세요. 평면의 네 칸이 높이 1의 입체 구조가 됩니다.",new Vector2Int(1,1)),
         new AerStage("같은 자리, 다른 높이","02 / OVERLAP","같은 자리에 두 블록을 놓아보세요. 두 번 겹친 칸은 높이 2가 됩니다.",new Vector2Int(1,1),new Vector2Int(1,1)),
         new AerStage("겹침으로 만든 계단","03 / RECONSTRUCT","",new Vector2Int(1,1),new Vector2Int(1,1),new Vector2Int(2,1)),
-        // Names introduce offset overlap, turned L, crossing I, whole-mino
-        // inversion and amplification. The tutorial and regions 1-6 are unchanged.
+        // Names introduce offset overlap, turned L, crossing I, local
+        // minimum/maximum leveling. Tutorials and regions 1-5 are unchanged.
         new AerStage("기상 관측소","NAME-01","",new Vector2Int(0,1),new Vector2Int(1,1),new Vector2Int(1,2)),
         new AerStage("공동 건조장","NAME-02","",new Vector2Int(1,0),new Vector2Int(1,1),new Vector2Int(1,2),new Vector2Int(2,1)),
         new AerStage("온실","NAME-03","",M(4,1,1),M(4,2,2),M(3,0,1,1)),
         new AerStage("통신 중계소","NAME-04","",M(4,1,1),M(4,0,2),M(3,1,0,2),M(3,2,1,1)),
         new AerStage("일조 복원","WEATHER-01","재현도 85% 이상",M(4,1,1),M(4,2,1),M(3,0,1),M(3,2,0,1),M(3,1,2,1),M(4,2,2)),
         new AerStage("기록 보관소","NAME-05","",M(4,1,1),M(3,0,0),M(2,0,2),M(4,2,2)),
-        new AerStage("급수 관리소","NAME-06","",M(4,2,2),M(3,0,1),M(3,2,0,1),M(2,1,1,1),M(2,0,2)),
-        // Introduce one operator at a time: two positive O pieces, one
-        // inverted O and S carve a small notch. Six voxels require subtraction.
-        new AerStage("바람길 제어소","NAME-07","",M(4,0,1),M(4,1,1),M(4,0,2),M(1,0,3)),
-        // T alone doubles one O. The other two O pieces form a readable step;
-        // simultaneous S/T inversion is available but never required here.
-        new AerStage("환경 제어실","NAME-08","",M(4,0,1),M(4,2,1),M(4,1,2),M(0,0,0)),
-        // Match the waterworks footprint/height scale; carve a two-layer notch.
-        // Five ordinary minos plus S/T; no positive-only 85% shortcut.
-        new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(2,1,4),M(2,0,1,3),M(3,1,1),M(3,3,1,2),M(3,3,1),M(1,2,1,1),M(0,1,0,2))
+        // One extra O overlap and one vertical I; fewer competing orientations.
+        new AerStage("급수 관리소","NAME-06","",M(4,1,1),M(4,2,1),M(3,0,1),M(2,3,0,1),M(4,2,2)),
+        // Each introduction uses three ordinary pieces and one local operator.
+        new AerStage("바람길 제어소","NAME-07","",M(4,1,1),M(4,2,1),M(3,0,1),M(1,1,2)),
+        new AerStage("환경 제어실","NAME-08","",M(4,1,1),M(4,2,1),M(4,2,2),M(0,0,1)),
+        // Both local effects matter; their two shared cells retain raw heights.
+        new AerStage("강수 복원","WEATHER-02","복원도 85% 이상",M(4,1,1),M(4,2,1),M(3,0,1),M(2,0,2),M(1,1,2),M(0,0,2))
     };
     public static readonly int[] BuildingStages={3,4,5,6,8,9,10,11};
     static AerStage.Step M(int action,int x,int y,int turns=0)=>new AerStage.Step(action,x,y,turns);

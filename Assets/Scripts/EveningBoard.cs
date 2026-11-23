@@ -53,40 +53,51 @@ public sealed class EveningBoard
     {for(int i=pieces.Count-1;i>=0;i--)foreach(var c in pieces[i].Cells)if(c==cell)return pieces[i];return null;}
     public List<Piece> At(Vector2Int cell)
     {var result=new List<Piece>();foreach(var p in pieces)foreach(var c in p.Cells)if(c==cell){result.Add(p);break;}return result;}
-    void ModifierMasks(out bool[,] inverter,out bool[,] amplifier)
+    // Operators sample the ordinary height map once, never one another.
+    public int[,] BaseHeights()
     {
-        inverter=new bool[Size,Size];amplifier=new bool[Size,Size];
-        foreach(var p in pieces)if(p.Action<2)foreach(var c in p.Cells)(p.Action==1?inverter:amplifier)[c.x,c.y]=true;
+        var raw=new int[Size,Size];
+        foreach(var p in pieces)if(p.Action>=2)foreach(var c in p.Cells)raw[c.x,c.y]++;
+        return raw;
     }
-    static int OutputOf(Piece piece,bool[,] inverter,bool[,] amplifier)
-    {
-        if(piece.Action<2)return 0;
-        bool reversed=false,doubled=false;
-        foreach(var c in piece.Cells){reversed|=inverter[c.x,c.y];doubled|=amplifier[c.x,c.y];}
-        return (reversed?-1:1)*(doubled?2:1);
-    }
-    // Any shared cell modifies the entire ordinary mino. S/T never modify one
-    // another or stack their own effect; masks make placement order irrelevant.
-    public int OutputOf(Piece piece)
-    {ModifierMasks(out var inverter,out var amplifier);return OutputOf(piece,inverter,amplifier);}
     public int[,] Heights()
     {
-        ModifierMasks(out var inverter,out var amplifier);var h=new int[Size,Size];
-        foreach(var p in pieces){int output=OutputOf(p,inverter,amplifier);foreach(var c in p.Cells)h[c.x,c.y]+=output;}
-        for(int x=0;x<Size;x++)for(int y=0;y<Size;y++)h[x,y]=Math.Max(0,h[x,y]);return h;
+        var raw=BaseHeights();var low=new int[Size,Size];var high=new int[Size,Size];
+        for(int x=0;x<Size;x++)for(int y=0;y<Size;y++){low[x,y]=int.MaxValue;high[x,y]=-1;}
+        foreach(var p in pieces)if(p.Action<2)
+        {
+            int value=p.Action==1?int.MaxValue:0;
+            foreach(var c in p.Cells)value=p.Action==1?Math.Min(value,raw[c.x,c.y]):Math.Max(value,raw[c.x,c.y]);
+            foreach(var c in p.Cells)
+                if(p.Action==1)low[c.x,c.y]=Math.Min(low[c.x,c.y],value);
+                else high[c.x,c.y]=Math.Max(high[c.x,c.y],value);
+        }
+        var h=(int[,])raw.Clone();
+        for(int x=0;x<Size;x++)for(int y=0;y<Size;y++)
+        {
+            bool s=low[x,y]!=int.MaxValue,t=high[x,y]>=0;
+            if(s&&t)continue; // conflicting footprints retain the original height
+            if(s)h[x,y]=low[x,y];else if(t)h[x,y]=high[x,y];
+        }
+        return h;
     }
     public List<Voxel> Voxels()
     {
-        var heights=Heights();var result=new List<Voxel>();ModifierMasks(out var inverter,out var amplifier);
-        // Color positive layers by their source mino; subtraction removes top layers.
-        // The evaluated height remains the order-independent sum of all effects.
+        var heights=Heights();var result=new List<Voxel>();
         for(int x=0;x<Size;x++)for(int y=0;y<Size;y++)
         {
-            int layer=0;foreach(var p in At(new Vector2Int(x,y)))
+            int layer=0;Piece raiser=null;
+            foreach(var p in At(new Vector2Int(x,y)))
             {
-                int amount=OutputOf(p,inverter,amplifier);if(amount<=0)continue;
-                for(int i=0;i<amount&&layer<heights[x,y];i++,layer++)result.Add(new Voxel(x,y,layer,p.Action,p.Id));
-                if(layer>=heights[x,y])break;
+                if(p.Action==0)raiser=p;
+                if(p.Action<2||layer>=heights[x,y])continue;
+                result.Add(new Voxel(x,y,layer++,p.Action,p.Id));
+            }
+            while(layer<heights[x,y])
+            {
+                // New layers created by T keep its yellow swatch, including
+                // originally empty cells. Lowering simply removes upper layers.
+                result.Add(new Voxel(x,y,layer++,0,raiser==null?0:raiser.Id));
             }
         }
         return result;
