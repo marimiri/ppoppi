@@ -14,6 +14,7 @@ public sealed class AerStage
     public readonly Step[] Solution;
     public readonly int[,] Target=new int[5,5];
     public int Supply=>Solution.Length;
+    public bool LimitedSupply=>!Weather;
     public bool Weather=>Code.StartsWith("WEATHER");
     public int ClearPercent=>Code=="WEATHER-02"?90:Weather?85:100;
     public AerStage(string name,string code,string lesson,params Vector2Int[] solution):this(name,code,lesson,Array.ConvertAll(solution,p=>new Step(4,p.x,p.y))){}
@@ -46,6 +47,13 @@ public sealed class AerStage
         int index=Array.IndexOf(AerStages.All,this);
         return action==4||action==3&&index>=5||action==2&&index>=8||action==1&&index>=10||action==0&&index>=11;
     }
+    public int Remaining(EveningBoard board,int action)=>LimitedSupply?Math.Max(0,SupplyOf(action)-board.Count(action)):-1;
+    public bool CanPlace(EveningBoard board,int action)=>Allows(action)&&(!LimitedSupply||Remaining(board,action)>0);
+    public bool WithinSupply(EveningBoard board)
+    {
+        for(int a=0;a<5;a++)if(board.Count(a)>0&&(!Allows(a)||LimitedSupply&&board.Count(a)>SupplyOf(a)))return false;
+        return true;
+    }
     public bool RequiredMinoUsed(EveningBoard board)
     {
         if(RequiredAction<0)return true;if(board.Count(RequiredAction)==0)return false;
@@ -54,7 +62,7 @@ public sealed class AerStage
         for(int x=0;x<5;x++)for(int y=0;y<5;y++)if(actual[x,y]!=other[x,y])return true;
         return false;
     }
-    public bool Complete(EveningBoard board)=>board.Pieces.Count>0&&RequiredMinoUsed(board)&&(Weather?Similarity(board)>=ClearPercent:Differences(board)==0);
+    public bool Complete(EveningBoard board)=>board.Pieces.Count>0&&WithinSupply(board)&&RequiredMinoUsed(board)&&(Weather?Similarity(board)>=ClearPercent:Differences(board)==0);
 }
 
 public static class AerStages

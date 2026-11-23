@@ -52,7 +52,7 @@ public static class AerBuilder
         foreach(var stage in AerStages.All)
         {
             var board=new EveningBoard();foreach(var step in stage.Solution)
-            {if(!stage.Allows(step.Action)||!board.TryPlace(step.Action,step.Cells(),out _))throw new Exception("Invalid or unavailable solution: "+stage.Name);}
+            {if(!stage.CanPlace(board,step.Action)||!board.TryPlace(step.Action,step.Cells(),out _))throw new Exception("Invalid or unavailable solution: "+stage.Name);}
             if(!stage.Complete(board)||stage.Similarity(board)!=100)throw new Exception("Solution evaluation");
             board.Undo();if(stage.Similarity(board)>=100||!stage.Weather&&stage.Complete(board))throw new Exception("Incomplete exact board accepted");
         }
@@ -118,6 +118,20 @@ public static class AerBuilder
         Add(eight,4,0,0);
         if(final90.Similarity(eight)!=90||!final90.Complete(eight))throw new Exception("Final must accept 90 percent");
         if(AerStages.All[12].ClearPercent!=90||AerStages.All[7].ClearPercent!=85)throw new Exception("Weather stage thresholds changed");
+        foreach(var stage in AerStages.All)
+        {
+            if(stage.LimitedSupply==stage.Weather)throw new Exception("Only weather may have unlimited supply");
+            var stock=new EveningBoard();foreach(var step in stage.Solution)stock.TryPlace(step.Action,step.Cells(),out _);
+            if(!stage.WithinSupply(stock))throw new Exception("Reference solution exceeds supply");
+            if(stage.LimitedSupply)
+            {
+                int action=stage.Solution[0].Action;
+                if(stage.Remaining(stock,action)!=0||stage.CanPlace(stock,action))throw new Exception("Stock should be exhausted by the reference solution");
+                stock.TryPlace(action,stage.Solution[0].Cells(),out _);
+                if(stage.WithinSupply(stock)||stage.Complete(stock))throw new Exception("Over-quota solution accepted");
+            }
+            else if(stage.Remaining(stock,4)!=-1||!stage.CanPlace(stock,4))throw new Exception("Weather supply must remain unlimited");
+        }
         var unlimited=new EveningBoard();for(int i=0;i<100;i++)if(!unlimited.TryPlace(4,(Vector2Int[])EveningBoard.Shapes[4].Clone(),out _))throw new Exception("Unexpected piece cap");
         if(unlimited.MaxHeight!=100)throw new Exception("Unlimited overlap failed");
         var empty=new EveningBoard();Add(empty,0,0,0);Add(empty,1,0,0);

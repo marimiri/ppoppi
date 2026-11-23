@@ -148,6 +148,8 @@ public sealed class ProtocolAer:MonoBehaviour
     }
     string Lesson()=>stageIndex<3?new[]{"블록을 클릭한 뒤 배치판을 클릭하세요.","같은 칸에 겹치면 높아집니다.","겹침으로 목표 모양을 만드세요."}[stageIndex]:Stage.Weather?"복원도 "+Stage.ClearPercent+"% 이상":"";
     static Rect TrayBlock(int index)=>new Rect(1119+(index%2)*139,249+(index/2)*112,84,84);
+    int RemainingStock(int action)=>Stage.LimitedSupply?Math.Max(0,Stage.Remaining(board,action)-(held==action?1:0)):-1;
+    static Rect TrayHit(int index){var r=TrayBlock(index);return new Rect(r.x-2,r.y-2,r.width+14,r.height+14);}
     List<int> TrayActions()
     {
         var result=new List<int>();foreach(int action in new[]{4,3,2,1,0})if(Stage.Allows(action))result.Add(action);return result;
@@ -155,12 +157,12 @@ public sealed class ProtocolAer:MonoBehaviour
     bool TrySelectBlockAt(Vector2 point)
     {
         if(screen!=ScreenMode.Puzzle||executing||success||newMino>=0)return false;
-        var actions=TrayActions();for(int i=0;i<actions.Count;i++)if(TrayBlock(i).Contains(point)){Select(actions[i]);return held>=0;}
+        var actions=TrayActions();for(int i=0;i<actions.Count;i++)if(TrayHit(i).Contains(point)){Select(actions[i]);return held>=0;}
         return false;
     }
     void Select(int action=4)
     {
-        if(executing||success||newMino>=0||!Stage.Allows(action))return;
+        if(executing||success||newMino>=0||!Stage.CanPlace(board,action))return;
         ClearHint();held=action;orientation=(Vector2Int[])EveningBoard.Shapes[action].Clone();anchorIndex=0;
         if(viewMode==0)viewMode=2;Rebuild();Sound();message="";
     }
@@ -168,7 +170,7 @@ public sealed class ProtocolAer:MonoBehaviour
     bool Place()
     {
         if(held<0)return false;
-        if(!Stage.Allows(held)||!board.TryPlace(held,Candidate(),out _)){ReturnHeld();Sound();message="";return false;}
+        if(!Stage.CanPlace(board,held)||!board.TryPlace(held,Candidate(),out _)){ReturnHeld();Sound();message="";return false;}
         held=-1;ClearHint();evaluated=restored=false;Sound();Rebuild();message="";return true;
     }
     void ClearHint(){hint=-1;hintPieceId=-1;}
@@ -253,7 +255,7 @@ public sealed class ProtocolAer:MonoBehaviour
     }
     Vector2Int[] ValidPreviewCells()
     {
-        if(screen!=ScreenMode.Puzzle||held<0||!onGrid||executing||success||newMino>=0||!Stage.Allows(held))return null;
+        if(screen!=ScreenMode.Puzzle||held<0||!onGrid||executing||success||newMino>=0||!Stage.CanPlace(board,held))return null;
         var cells=Candidate();return EveningBoard.ValidCells(cells)?cells:null;
     }
     void RefreshPlacementPreview()
@@ -546,14 +548,32 @@ public sealed class ProtocolAer:MonoBehaviour
         {
             var shape=TrayBlock(i);bool selected=held==actions[i];
             DrawMino(shape,actions[i],selected);
+            if(Stage.LimitedSupply&&Stage.Remaining(board,actions[i])==0)Fill(shape,new Color(Deep.r,Deep.g,Deep.b,.75f));
             if(selected)Border(new Rect(shape.x-6,shape.y-6,96,96),Ink,4);
-            if(shape.Contains(Pointer())&&!executing&&!success)Border(new Rect(shape.x-4,shape.y-4,92,92),Sky);
+            if(TrayHit(i).Contains(Pointer())&&!executing&&!success&&Stage.CanPlace(board,actions[i]))Border(new Rect(shape.x-4,shape.y-4,92,92),Sky);
+            if(Stage.LimitedSupply)DrawStockBadge(new Rect(shape.xMax-22,shape.yMax-20,32,32),RemainingStock(actions[i]));
         }
         Text(new Rect(1080,575,320,29),"복원도 "+Stage.Similarity(board)+"% / "+Stage.ClearPercent+"%",18,Blue,true);
         if(Button(new Rect(1080,620,320,57),executing?"실행 중…":"실행",!executing&&!success&&held<0&&board.Pieces.Count>0,true))Execute();
         if(Button(new Rect(1080,691,153,38),"되돌리기",board.Pieces.Count>0&&!executing&&!success))Undo();
         if(Button(new Rect(1247,691,153,38),"초기화",!executing&&!success))ResetBoard();
         if(Button(new Rect(1080,741,320,36),"힌트",!executing&&!success))RequestHint();
+    }
+    void PixelDisc(Rect r,Color color)
+    {
+        float radius=r.width/2;
+        for(float row=0;row<r.height;row+=2)
+        {
+            float dy=row+1-radius,half=Mathf.Floor(Mathf.Sqrt(Mathf.Max(0,radius*radius-dy*dy))/2)*2;
+            if(half>0)Fill(new Rect(r.center.x-half,r.y+row,half*2,2),color);
+        }
+    }
+    void DrawStockBadge(Rect r,int count)
+    {
+        r.x=Snap(r.x);r.y=Snap(r.y);
+        PixelDisc(r,count==0?Muted:Ink);
+        PixelDisc(new Rect(r.x+2,r.y+2,r.width-4,r.height-4),Deep);
+        Text(new Rect(r.x,r.y-1,r.width,r.height),count.ToString(),16,count==0?Muted:Color.white,true,TextAnchor.MiddleCenter);
     }
     void DrawMino(Rect area,int action,bool selected=false)
     {
@@ -724,6 +744,36 @@ public sealed class ProtocolAer:MonoBehaviour
         EnterStage(0);
         Debug.Log("AER_HINTS_PASSED: all 13 stages solved through production hints/click anchors; rotation and S/T types; duplicate placements; wrong-plan correction; undo; S-free wind rejected");
     }
+    IEnumerator CheckStockInteraction(string directory)
+    {
+        EnterStage(1);newMino=-1;
+        if(RemainingStock(4)!=2)throw new Exception("Initial finite stock incorrect");
+        yield return Shot(directory,"stock-initial");
+        Select(4);if(RemainingStock(4)!=1)throw new Exception("Holding must reserve one stock");
+        ReturnHeld();if(RemainingStock(4)!=2)throw new Exception("Returning must restore stock");
+        for(int i=0;i<2;i++){Select(4);hover=new Vector2Int(1,1);if(!Place())throw new Exception("Finite stock placement failed");}
+        if(RemainingStock(4)!=0||Stage.CanPlace(board,4))throw new Exception("Stock did not exhaust");
+        TrySelectBlockAt(TrayBlock(0).center);if(held>=0)throw new Exception("Exhausted tray must not select");
+        yield return Shot(directory,"stock-exhausted");
+        // Also reject a stale held selection at the production placement gate.
+        held=4;orientation=(Vector2Int[])EveningBoard.Shapes[4].Clone();anchorIndex=0;hover=new Vector2Int(1,1);
+        if(Place()||board.Count(4)!=2||held>=0)throw new Exception("Finite stock placement overflow");
+        PickUpAt(new Vector2Int(1,1));
+        if(board.Count(4)!=1||held!=4||RemainingStock(4)!=0)throw new Exception("Picking up must transfer, not duplicate, stock");
+        yield return Shot(directory,"stock-moving");
+        hover=new Vector2Int(2,1);if(!Place()||board.Count(4)!=2||RemainingStock(4)!=0)throw new Exception("Moving consumed extra stock");
+        PickUpAt(new Vector2Int(1,1));hover=new Vector2Int(4,4);
+        if(Place()||held>=0||board.Count(4)!=1||RemainingStock(4)!=1)throw new Exception("Invalid placement must return reserved stock");
+        Undo();if(board.Count(4)!=0||RemainingStock(4)!=2)throw new Exception("Undo must return stock");
+        Select(4);hover=new Vector2Int(1,1);Place();ResetBoard();
+        if(board.Count(4)!=0||RemainingStock(4)!=2)throw new Exception("Reset must restore the complete supply");
+        EnterStage(7);newMino=-1;
+        for(int i=0;i<12;i++){Select(4);hover=new Vector2Int(1,1);if(!Place())throw new Exception("Weather supply must remain unlimited");}
+        if(board.Count(4)!=12||RemainingStock(4)!=-1||!Stage.CanPlace(board,4))throw new Exception("Weather stock limit introduced");
+        ResetBoard();yield return Shot(directory,"stock-weather-unlimited");
+        EnterStage(0);
+        Debug.Log("AER_STOCK_PASSED: finite non-weather quotas, held reservations, zero selection/placement guard, pickup/move/invalid return/undo/reset, unlimited weather");
+    }
     IEnumerator Capture(string directory)
     {
         Directory.CreateDirectory(directory);screen=ScreenMode.Title;yield return Shot(directory,"01-title");
@@ -733,12 +783,7 @@ public sealed class ProtocolAer:MonoBehaviour
         yield return CheckFullOrbit(directory);
         yield return CheckPlacementInteraction(directory);
         yield return CheckHintInteraction(directory);
-        for(int i=0;i<12;i++)
-        {
-            if(TrayActions().Count!=1||!TrySelectBlockAt(TrayBlock(0).center))throw new Exception("Unlimited O selection failed");
-            hover=new Vector2Int(1,1);if(!Place())throw new Exception("Unlimited O placement failed");
-        }
-        if(board.Count(4)!=12||TrayActions().Count!=1)throw new Exception("Tray must show types, not remaining counts");
+        yield return CheckStockInteraction(directory);
         ResetBoard();
         Select(4);hover=new Vector2Int(0,0);if(!Place())throw new Exception("Failed-preview setup rejected");
         Execute();while(executing){UpdateGrowth();yield return null;}
@@ -785,7 +830,7 @@ public sealed class ProtocolAer:MonoBehaviour
         if(NextMain()!=cleared.Length||ClearCount()!=10)throw new Exception("Must finish exactly 8 names and 2 weather stages");
         SetScreen(ScreenMode.Map);yield return Shot(directory,"08-map-complete");
         SetScreen(ScreenMode.End);yield return Shot(directory,"09-end");
-        Debug.Log("AER_RUNTIME_PASSED: normal near-large perspective in four orbit quadrants; fixed bottom/front marker; 70% preview and opaque restoration; tutorial and all 10 main stages; unlimited supply; no persistence.");Application.Quit();
+        Debug.Log("AER_RUNTIME_PASSED: normal near-large perspective in four orbit quadrants; fixed bottom/front marker; 70% preview and opaque restoration; tutorial and all 10 main stages; finite non-weather stock and unlimited weather; no persistence.");Application.Quit();
     }
     IEnumerator Shot(string directory,string name)
     {
