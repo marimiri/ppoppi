@@ -22,7 +22,7 @@ Windway and control room each use three ordinary pieces and one operator. The fi
 - Q / E / R: rotate. F: mirror. These preserve the O module's square shape.
 - Ctrl+Z or Undo: remove the last placement.
 - Reset: clear the current puzzle.
-- Left preview: drag or WASD to orbit, mouse wheel to zoom.
+- Left preview: drag or WASD to orbit through a full 360 degrees on both axes, including over-pole and under-board views; mouse wheel to zoom. Angles wrap without clamping, and Reset View restores the default orientation.
 - Target / Current / Overlay: change the preview comparison.
 - Hint: inspect the committed plan and show the next missing example placement. The correct type and orientation are selected automatically; click the gold dot to use the exact anchor. Duplicate placements are counted individually and hints recompute after moves/undo. Red cells and a red dot identify a misplaced module to move/return first; its marked cell is always actually clickable. Completed boards receive execution advice, including valid alternative solutions. Hints never place/remove a module automatically.
 - Execute: animate height growth and compare. Failed attempts remain editable.

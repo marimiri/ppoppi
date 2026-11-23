@@ -1,4 +1,4 @@
-Protocol Aer v0.3.0 — 급수 관리소 완화 / S·T 최소·최대 통일
+Protocol Aer v0.3.1 — 급수 관리소 완화 / S·T 최소·최대 통일
 환경: Windows / Unity 6000.3.24f1 / 1440x900 / Direct3D 11
 
 [확정 규칙]
@@ -43,4 +43,13 @@ AER_RULES_PASSED
 AER_PLACEMENT_PASSED
 AER_HINTS_PASSED
 AER_RUNTIME_PASSED
-Assembly-CSharp.dll SHA-256: 0E069C1DD047B24D74F2F82C8B4BEFBD230BF26C46B3D1CB6F833916B4F0A8B6
+Assembly-CSharp.dll SHA-256: D2C6B3A0E4892D36B26880450C80AE91A2580A21CA77F399CC01D65FAA46A597
+
+[360도 시점 회전]
+- 마우스 드래그와 WASD가 공유하는 Orbit 입력 경로 검사
+- 가로/세로 각 360도 회전 후 시작 위치/방향 일치
+- 725도 반복 회전과 역회전 후 원상 복구
+- 세로 90 / 132 / -90 / -32도 시점 실제 렌더링 확인
+- 극점을 넘어도 카메라 행렬이 유효하고, 보드 아래쪽 시점에 도달
+- 하늘색 앞면 기준선은 보드에 고정
+AER_ORBIT_PASSED

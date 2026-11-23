@@ -100,10 +100,11 @@ public sealed class ProtocolAer:MonoBehaviour
             float wheel=Input.mouseScrollDelta.y;if(wheel!=0){zoom=Mathf.Clamp(zoom-wheel*.4f,7,18);FrameCamera();}
         }
         if(!Input.GetMouseButton(0))dragging=false;
-        if(dragging){Vector2 delta=p-dragLast;yaw+=delta.x*.35f;elevation=Mathf.Clamp(elevation+delta.y*.25f,10,78);dragLast=p;FrameCamera();}
+        if(dragging){Vector2 delta=p-dragLast;Orbit(delta.x*.35f,delta.y*.25f);dragLast=p;}
         float dt=Time.unscaledDeltaTime*60;
-        if(Input.GetKey(KeyCode.A))yaw-=dt;if(Input.GetKey(KeyCode.D))yaw+=dt;
-        if(Input.GetKey(KeyCode.W))elevation=Mathf.Min(78,elevation+dt);if(Input.GetKey(KeyCode.S))elevation=Mathf.Max(10,elevation-dt);
+        float horizontal=(Input.GetKey(KeyCode.D)?dt:0)-(Input.GetKey(KeyCode.A)?dt:0);
+        float vertical=(Input.GetKey(KeyCode.W)?dt:0)-(Input.GetKey(KeyCode.S)?dt:0);
+        if(horizontal!=0||vertical!=0)Orbit(horizontal,vertical);
         onGrid=Grid.Contains(p);if(onGrid)hover=new Vector2Int((int)((p.x-Grid.x)/88),(int)((p.y-Grid.y)/88));
         if(Input.GetKeyDown(KeyCode.Escape)||Input.GetMouseButtonDown(1))ReturnHeld();
         if(held>=0)
@@ -216,6 +217,14 @@ public sealed class ProtocolAer:MonoBehaviour
             Rebuild();Sound(true);message="";
         }
         else {message="목표와 다릅니다. 다시 배치하세요.";Rebuild();}
+    }
+    void Orbit(float horizontal,float vertical)
+    {
+        // Wrap instead of clamping: both axes can cross the poles and complete
+        // any number of revolutions without accumulating large float values.
+        yaw=Mathf.Repeat(yaw+horizontal,360);
+        elevation=Mathf.Repeat(elevation+vertical+180,360)-180;
+        FrameCamera();
     }
     void FrameCamera()
     {
@@ -600,6 +609,31 @@ public sealed class ProtocolAer:MonoBehaviour
         foreach(var endpoint in frontEdge.vertices)if(Mathf.Abs(endpoint.z+.575f)>.001f)throw new Exception("Front marker must remain on the 2D bottom edge");
         if(frontEdgeMat.GetInt("_ZTest")!=(int)UnityEngine.Rendering.CompareFunction.Always)throw new Exception("Front marker must remain readable after orbiting");
     }
+    IEnumerator CheckFullOrbit(string directory)
+    {
+        EnterStage(12);newMino=-1;
+        float savedYaw=yaw,savedElevation=elevation,savedZoom=zoom;
+        var start=previewCamera.transform.position;var startRotation=previewCamera.transform.rotation;
+        Orbit(360,0);Orbit(0,360);
+        if(Vector3.Distance(start,previewCamera.transform.position)>.001f||Quaternion.Angle(startRotation,previewCamera.transform.rotation)>.02f)throw new Exception("A full orbit must return to the same view");
+        Orbit(725,-725);Orbit(-725,725);
+        if(Vector3.Distance(start,previewCamera.transform.position)>.001f||Quaternion.Angle(startRotation,previewCamera.transform.rotation)>.02f)throw new Exception("Repeated revolutions must preserve camera framing");
+        foreach(float angle in new[]{90f,132f,-90f,-32f})
+        {
+            Orbit(0,Mathf.DeltaAngle(elevation,angle));
+            if(Mathf.Abs(Mathf.DeltaAngle(elevation,angle))>.001f)throw new Exception("Vertical orbit is still limited");
+            var expected=Quaternion.Euler(angle,yaw,0);
+            if(Quaternion.Angle(expected,previewCamera.transform.rotation)>.02f)throw new Exception("Orbit pole crossing changed camera orientation");
+            for(int i=0;i<16;i++){float value=previewCamera.worldToCameraMatrix[i];if(float.IsNaN(value)||float.IsInfinity(value))throw new Exception("Orbit produced invalid camera matrix");}
+            if(angle<0&&previewCamera.transform.position.y>=0)throw new Exception("Full orbit must reach below the board");
+            foreach(var endpoint in frontEdge.vertices)if(Mathf.Abs(endpoint.z+.575f)>.001f)throw new Exception("Orbit moved the fixed front marker");
+            yield return Shot(directory,"orbit-vertical-"+angle);
+        }
+        yaw=savedYaw;elevation=savedElevation;zoom=savedZoom;FrameCamera();
+        if(Vector3.Distance(start,previewCamera.transform.position)>.001f)throw new Exception("View reset failed after full orbit");
+        EnterStage(0);
+        Debug.Log("AER_ORBIT_PASSED: both axes wrap through 360 degrees, repeated revolutions, over-pole and under-board views, finite matrices and fixed front edge");
+    }
     IEnumerator CaptureOutline(string directory)
     {
         Directory.CreateDirectory(directory);
@@ -695,6 +729,7 @@ public sealed class ProtocolAer:MonoBehaviour
         SetScreen(ScreenMode.Boot);screenSince=Time.unscaledTime-1.8f;yield return Shot(directory,"02-terminal");
         SetScreen(ScreenMode.Map);confirmTutorial=true;yield return Shot(directory,"03-intro");confirmTutorial=false;yield return Shot(directory,"04-map");
         EnterStage(0);yield return Shot(directory,"05-tutorial-empty");
+        yield return CheckFullOrbit(directory);
         yield return CheckPlacementInteraction(directory);
         yield return CheckHintInteraction(directory);
         for(int i=0;i<12;i++)
