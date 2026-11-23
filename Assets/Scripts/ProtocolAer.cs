@@ -17,9 +17,8 @@ public sealed class ProtocolAer:MonoBehaviour
     static readonly Rect Preview=new Rect(38,219,516,414),Grid=new Rect(600,228,440,440);
     static readonly Color FrontEdge=Hex("8FD9FF");
     const float PreviewAlpha=.80f;
-    Texture2D sky,triangle,titleChalk;Font korean,chalk,mono;
-    [Serializable] sealed class TitleMetrics {public float[] Advances;}
-    TitleMetrics titleMetrics;
+    Texture2D sky,triangle;Font korean,chalk,mono;
+    GUIStyle pixelTitleLabel;
     Camera backgroundCamera,previewCamera,maskCamera;RenderTexture previewTexture,maskTexture;
     Material fillMat,lineMat,ghostMat,targetDepthMat,targetLineMat,frontEdgeMat;Mesh cube,edge,targetEdges,frontEdge;Transform sceneRoot;
     readonly List<GameObject> modules=new List<GameObject>();
@@ -45,8 +44,6 @@ public sealed class ProtocolAer:MonoBehaviour
         Application.runInBackground=true;Application.targetFrameRate=60;
         foreach(var cam in FindObjectsByType<Camera>(FindObjectsSortMode.None))cam.enabled=false;
         sky=Resources.Load<Texture2D>("Art/Sky");
-        titleChalk=Resources.Load<Texture2D>("Art/TitleChalk");var metrics=Resources.Load<TextAsset>("Art/TitleChalkMetrics");
-        if(metrics!=null)titleMetrics=JsonUtility.FromJson<TitleMetrics>(metrics.text.TrimStart('\uFEFF'));
         korean=Resources.Load<Font>("Fonts/Pixel");chalk=Resources.Load<Font>("Fonts/ChalkHand");mono=korean;
         if(korean==null)korean=Font.CreateDynamicFontFromOSFont("Malgun Gothic",18);
         if(chalk==null)chalk=korean;if(mono==null)mono=korean;
@@ -389,17 +386,47 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         if(sky!=null)GUI.DrawTexture(new Rect(0,0,1440,900),sky,ScaleMode.ScaleAndCrop);
         Fill(new Rect(0,0,1440,900),new Color(.1f,.22f,.38f,.12f));
-        string title="Protocol Aer";float total=0;foreach(float advance in titleMetrics.Advances)total+=advance;
-        float left=720-total/2;
-        for(int i=0;i<title.Length;i++)
-        {
-            float w=titleMetrics.Advances[i];
-            float dx=Mathf.Sin(Time.unscaledTime*2.1f+i*1.9f)*1.6f,dy=Mathf.Sin(Time.unscaledTime*2.5f+i*2.7f)*2.5f;
-            var m=GUI.matrix;GUIUtility.RotateAroundPivot(Mathf.Sin(Time.unscaledTime*1.7f+i)*1.5f,new Vector2(left+w/2,391));
-            GUI.DrawTextureWithTexCoords(new Rect(left-20+dx,300+dy,160,220),titleChalk,new Rect(i/12f,0,1/12f,1));GUI.matrix=m;left+=w;
-        }
+        DrawRetroTitle(390,true);
         Text(new Rect(520,641,400,65),"게임 시작",32,Color.white,true,TextAnchor.MiddleCenter);
         if(Mathf.Repeat(Time.unscaledTime,1.3f)<.7f)GUI.DrawTexture(new Rect(573,663,13,18),triangle);
+    }
+    static uint TitleNoiseHash(uint value)
+    {value^=value>>16;value*=0x7feb352du;value^=value>>15;value*=0x846ca68bu;return value^(value>>16);}
+    void DrawPixelGlyph(string glyph,float left,float top,float width,Color color)
+    {
+        var old=GUI.matrix;pixelTitleLabel.normal.textColor=color;
+        GUI.matrix=old*Matrix4x4.TRS(new Vector3(Snap(left),Snap(top),0),Quaternion.identity,new Vector3(6,6,1));
+        GUI.Label(new Rect(0,0,width+1,16),glyph,pixelTitleLabel);GUI.matrix=old;
+    }
+    void DrawRetroTitle(float centerY,bool animated)
+    {
+        const string title="PROTOCOL AER";const float scale=6;
+        if(pixelTitleLabel==null)pixelTitleLabel=new GUIStyle(GUI.skin.label){font=korean,fontSize=16,fontStyle=FontStyle.Normal,alignment=TextAnchor.UpperLeft,wordWrap=false,padding=new RectOffset(0,0,0,0),margin=new RectOffset(0,0,0,0)};
+        korean.RequestCharactersInTexture(title,16,FontStyle.Normal);
+        if(korean.material.mainTexture!=null)korean.material.mainTexture.filterMode=FilterMode.Point;
+        var widths=new float[title.Length];float total=0;
+        for(int i=0;i<title.Length;i++){widths[i]=Mathf.Ceil(pixelTitleLabel.CalcSize(new GUIContent(title[i].ToString())).x);total+=widths[i]*scale;}
+        float left=720-total/2,start=left,top=centerY-48;
+        int tick=Mathf.FloorToInt(Time.unscaledTime*8);
+        for(int i=0;i<title.Length;i++)
+        {
+            string glyph=title[i].ToString();
+            float dy=animated?Mathf.Round(Mathf.Sin(Time.unscaledTime*1.7f+i*.7f)*.8f)*2:0;
+            bool glitch=animated&&tick%29==0&&i>=3&&i<=6;
+            DrawPixelGlyph(glyph,left+4,top+dy+4,widths[i],new Color(.04f,.13f,.23f,.32f));
+            if(glitch)DrawPixelGlyph(glyph,left-2,top+dy,widths[i],new Color(.65f,.9f,1,.22f));
+            DrawPixelGlyph(glyph,left+(glitch?2:0),top+dy,widths[i],Color.white);
+            left+=widths[i]*scale;
+        }
+        if(!animated)return;
+        // Sparse point-filtered grain, kept local to the title area. Hashing
+        // avoids changing Unity's random state or any puzzle behavior.
+        for(uint i=0;i<18;i++)
+        {
+            uint seed=TitleNoiseHash((uint)tick*97u+i*7919u);
+            float x=start+(seed%((uint)total/2))*2,y=top+((seed>>12)%48)*2;
+            Fill(new Rect(x,y,i%5==0?4:2,2),i%3==0?new Color(.05f,.17f,.29f,.20f):new Color(1,1,1,.13f));
+        }
     }
     void DrawBoot()
     {
@@ -604,7 +631,7 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         if(sky!=null)GUI.DrawTexture(new Rect(0,0,1440,900),sky,ScaleMode.ScaleAndCrop);
         Fill(new Rect(0,0,1440,900),new Color(.08f,.2f,.35f,.3f));
-        Text(new Rect(220,300,1000,110),"Protocol Aer",70,Color.white,false,TextAnchor.MiddleCenter,chalk);
+        DrawRetroTitle(355,false);
         Text(new Rect(320,460,800,55),"복원 완료",26,Color.white,true,TextAnchor.MiddleCenter);
         if(Button(new Rect(545,640,350,50),"타이틀로"))SetScreen(ScreenMode.Title);
     }

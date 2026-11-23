@@ -83,4 +83,4 @@ powershell -ExecutionPolicy Bypass -File .\Tools\VerifyWindows.ps1
 
 ## 글꼴
 
-NeoDunggeunmo와 Rock Salt를 사용합니다. 원본 라이선스는 `Assets/Resources/Fonts/Pixel-OFL.txt`, `Assets/Resources/Fonts/ChalkHand-License.txt`에 포함되어 있습니다.
+현재 타이틀과 UI는 NeoDunggeunmo를 사용합니다. NeoDunggeunmo와 보관된 Rock Salt 리소스의 원본 라이선스는 `Assets/Resources/Fonts/Pixel-OFL.txt`, `Assets/Resources/Fonts/ChalkHand-License.txt`에 포함되어 있습니다.

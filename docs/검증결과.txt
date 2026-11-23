@@ -1,4 +1,4 @@
-Protocol Aer v0.4.1 — 급수 관리소 완화 / S·T 최소·최대 통일
+Protocol Aer v0.4.2 — 급수 관리소 완화 / S·T 최소·최대 통일
 환경: Windows / Unity 6000.3.24f1 / 1440x900 / Direct3D 11
 
 [확정 규칙]
@@ -43,7 +43,7 @@ AER_RULES_PASSED
 AER_PLACEMENT_PASSED
 AER_HINTS_PASSED
 AER_RUNTIME_PASSED
-Assembly-CSharp.dll SHA-256: 989120819CB80E952DCE00D53E268CF7461E7DC6B393819197A10CD4C161AFD3
+Assembly-CSharp.dll SHA-256: 5820C20F203D2BEBBFFA5FFFBF72A278FD8F6492A615CF30253CE10AB187672A
 
 [360도 시점 회전]
 - 마우스 드래그와 WASD가 공유하는 Orbit 입력 경로 검사
@@ -96,3 +96,10 @@ AER_STOCK_PASSED
 - 배치 중/실행 중/실패 후는 80%, 복원 성공 후는 100% 불투명도
 - 실제 플레이어 실행에서 재질과 색상 알파 검사
 - 환경 제어실 실행 전 화면 캡처
+
+[레트로 픽셀 타이틀]
+- 흰색 대문자 PROTOCOL AER, NeoDunggeunmo 네이티브 16px를 6배 확대
+- Point 필터로 픽셀 경계 유지, 기존 하늘 사진과 시작 버튼/점멸 삼각형 유지
+- 작은 2px 단위 떨림과 낮은 알파의 점 노이즈, 드문 청색 오프셋
+- 노이즈는 순수 해시 계산으로 퍼즐 모델 및 Unity Random 상태를 변경하지 않음
+- 타이틀 캡처에서 글자 잘림 없음과 버튼 위치 확인
