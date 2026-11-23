@@ -16,7 +16,7 @@ public sealed class ProtocolAer:MonoBehaviour
     static readonly Color Ink=Hex("C6EBEF"),Blue=Hex("66CAE8"),Sky=Hex("489FD0"),Pink=Hex("F2A6C6"),Muted=Hex("7BA8C5"),Line=Hex("22618C"),Paper=Hex("072A50"),Panel=Hex("0B365F"),Deep=Hex("041C38");
     static readonly Rect Preview=new Rect(38,219,516,414),Grid=new Rect(600,228,440,440);
     static readonly Color FrontEdge=Hex("8FD9FF");
-    const float PreviewAlpha=.70f;
+    const float PreviewAlpha=.80f;
     Texture2D sky,triangle,titleChalk;Font korean,chalk,mono;
     [Serializable] sealed class TitleMetrics {public float[] Advances;}
     TitleMetrics titleMetrics;
@@ -830,7 +830,7 @@ public sealed class ProtocolAer:MonoBehaviour
         if(NextMain()!=cleared.Length||ClearCount()!=10)throw new Exception("Must finish exactly 8 names and 2 weather stages");
         SetScreen(ScreenMode.Map);yield return Shot(directory,"08-map-complete");
         SetScreen(ScreenMode.End);yield return Shot(directory,"09-end");
-        Debug.Log("AER_RUNTIME_PASSED: normal near-large perspective in four orbit quadrants; fixed bottom/front marker; 70% preview and opaque restoration; tutorial and all 10 main stages; finite non-weather stock and unlimited weather; no persistence.");Application.Quit();
+        Debug.Log("AER_RUNTIME_PASSED: normal near-large perspective in four orbit quadrants; fixed bottom/front marker; 80% preview and opaque restoration; tutorial and all 10 main stages; finite non-weather stock and unlimited weather; no persistence.");Application.Quit();
     }
     IEnumerator Shot(string directory,string name)
     {

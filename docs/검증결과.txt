@@ -1,4 +1,4 @@
-Protocol Aer v0.4.0 — 급수 관리소 완화 / S·T 최소·최대 통일
+Protocol Aer v0.4.1 — 급수 관리소 완화 / S·T 최소·최대 통일
 환경: Windows / Unity 6000.3.24f1 / 1440x900 / Direct3D 11
 
 [확정 규칙]
@@ -36,14 +36,14 @@ Protocol Aer v0.4.0 — 급수 관리소 완화 / S·T 최소·최대 통일
 - 실제 힌트/클릭 기준 칸으로 전체 스테이지 해결
 - 최소/최대 미리보기, 이동/회전/대칭, 잘못된 배치 반환
 - 중복 해법 미노, 빨간 제거 힌트, 되돌리기
-- 네 방향 원근, 앞면 기준선, 70% 미리보기 / 성공 시 불투명 표시
+- 네 방향 원근, 앞면 기준선, 80% 미리보기 / 성공 시 불투명 표시
 - 튜토리얼 3개 + 본편 10개 + 최종 종료 진행
 
 AER_RULES_PASSED
 AER_PLACEMENT_PASSED
 AER_HINTS_PASSED
 AER_RUNTIME_PASSED
-Assembly-CSharp.dll SHA-256: 0A40716DB37F8EE8756DFE55C009921F86D5941117FCFFA20F5862472F21F820
+Assembly-CSharp.dll SHA-256: 989120819CB80E952DCE00D53E268CF7461E7DC6B393819197A10CD4C161AFD3
 
 [360도 시점 회전]
 - 마우스 드래그와 WASD가 공유하는 Orbit 입력 경로 검사
@@ -90,3 +90,9 @@ AER_ORBIT_PASSED
 - 날씨에서 O 12개 연속 배치 및 추가 공급 유지 검사
 - 전체 스테이지 예시 해법이 종류별 예산 내에 있음 확인
 AER_STOCK_PASSED
+
+[80% 미리보기]
+- PreviewAlpha=0.80 적용
+- 배치 중/실행 중/실패 후는 80%, 복원 성공 후는 100% 불투명도
+- 실제 플레이어 실행에서 재질과 색상 알파 검사
+- 환경 제어실 실행 전 화면 캡처
