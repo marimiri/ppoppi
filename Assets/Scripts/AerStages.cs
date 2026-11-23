@@ -37,6 +37,9 @@ public sealed class AerStage
     public int RequiredAction=>Code=="NAME-03"?3:Code=="NAME-05"?2:Code=="NAME-07"?1:Code=="NAME-08"?0:-1;
     public bool Allows(int action)
     {
+        // Operator introductions deliberately offer only their teaching set.
+        if(Code=="NAME-07")return action==4||action==3||action==1;
+        if(Code=="NAME-08")return action==4||action==0;
         int index=Array.IndexOf(AerStages.All,this);
         return action==4||action==3&&index>=5||action==2&&index>=8||action==1&&index>=10||action==0&&index>=11;
     }

@@ -52,7 +52,7 @@ public static class AerBuilder
         foreach(var stage in AerStages.All)
         {
             var board=new EveningBoard();foreach(var step in stage.Solution)
-            {if(!board.TryPlace(step.Action,step.Cells(),out _))throw new Exception("Invalid solution: "+stage.Name);}
+            {if(!stage.Allows(step.Action)||!board.TryPlace(step.Action,step.Cells(),out _))throw new Exception("Invalid or unavailable solution: "+stage.Name);}
             if(!stage.Complete(board)||stage.Similarity(board)!=100)throw new Exception("Solution evaluation");
             board.Undo();if(stage.Similarity(board)>=100||!stage.Weather&&stage.Complete(board))throw new Exception("Incomplete exact board accepted");
         }
@@ -85,8 +85,19 @@ public static class AerBuilder
         foreach(int action in new[]{0,1,2,3,4})
         {
             int unlock=action==0?11:action==1?10:action==2?8:action==3?5:0;
-            for(int i=0;i<AerStages.All.Length;i++)if(AerStages.All[i].Allows(action)!=(i>=unlock))throw new Exception("Unlock timing changed");
+            for(int i=0;i<AerStages.All.Length;i++)
+            {
+                bool expected=i==10?(action==4||action==3||action==1):i==11?(action==4||action==0):i>=unlock;
+                if(AerStages.All[i].Allows(action)!=expected)throw new Exception("Stage teaching set/unlock timing changed");
+            }
         }
+        var windProof=new EveningBoard();
+        foreach(var step in AerStages.All[10].Solution)
+        {
+            if(step.Action==2)throw new Exception("Windway teaching solution must not use I");
+            windProof.TryPlace(step.Action,step.Cells(),out _);
+        }
+        if(AerStages.All[10].Similarity(windProof)!=100||!AerStages.All[10].Complete(windProof))throw new Exception("Windway must remain solvable at 100% without I");
         var unlimited=new EveningBoard();for(int i=0;i<100;i++)if(!unlimited.TryPlace(4,(Vector2Int[])EveningBoard.Shapes[4].Clone(),out _))throw new Exception("Unexpected piece cap");
         if(unlimited.MaxHeight!=100)throw new Exception("Unlimited overlap failed");
         var empty=new EveningBoard();Add(empty,0,0,0);Add(empty,1,0,0);

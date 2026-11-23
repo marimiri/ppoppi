@@ -565,7 +565,7 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         int a=newMino;Modal(new Rect(380,205,680,480),"",EveningBoard.Names[a]+" 미노 추가");
         DrawMino(new Rect(440,345,140,140),a);
-        string effect=a==1?"덮은 네 칸을 그중 가장 낮은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":a==0?"덮은 네 칸을 그중 가장 높은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":"덮는 칸마다 높이 +1";
+        string effect=a==1?"덮은 네 칸을 그중 가장 낮은 높이로 맞춘다.\n기준은 효과 적용 전 높이.":a==0?"덮은 네 칸을 그중 가장 높은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":"덮는 칸마다 높이 +1";
         Text(new Rect(625,335,390,160),effect,20,Ink,true);
         if(Button(new Rect(420,565,600,65),"확인",true,true)){knownMinos.Add(a);newMino=-1;}
     }
