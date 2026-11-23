@@ -146,7 +146,7 @@ public sealed class ProtocolAer:MonoBehaviour
         yaw=32;elevation=32;zoom=11.7f;message=Lesson();SetScreen(ScreenMode.Puzzle);Rebuild();
         newMino=-1;foreach(var step in Stage.Solution)if(!knownMinos.Contains(step.Action)){newMino=step.Action;break;}
     }
-    string Lesson()=>stageIndex<3?new[]{"블록을 클릭한 뒤 배치판을 클릭하세요.","같은 칸에 겹치면 높아집니다.","겹침으로 목표 모양을 만드세요."}[stageIndex]:Stage.Weather?"복원도 85% 이상":"";
+    string Lesson()=>stageIndex<3?new[]{"블록을 클릭한 뒤 배치판을 클릭하세요.","같은 칸에 겹치면 높아집니다.","겹침으로 목표 모양을 만드세요."}[stageIndex]:Stage.Weather?"복원도 "+Stage.ClearPercent+"% 이상":"";
     static Rect TrayBlock(int index)=>new Rect(1119+(index%2)*139,249+(index/2)*112,84,84);
     List<int> TrayActions()
     {
@@ -189,6 +189,7 @@ public sealed class ProtocolAer:MonoBehaviour
             message="예시 해법 기준: 빨간 점의 블록을 먼저 옮기거나 반환하세요.";return;
         }
         var step=Stage.Solution[advice.Step];Select(step.Action);
+        if(step.Mirrored)orientation=EveningBoard.Mirror(orientation);
         for(int i=0;i<step.Turns;i++)orientation=EveningBoard.Rotate(orientation,1);
         hint=advice.Step;hintAnchor=advice.Anchor;RefreshPlacementPreview();
         bool overlap=false;foreach(var piece in board.Pieces)if(AerHints.SameCells(piece.Cells,step.Cells())){overlap=true;break;}
@@ -548,7 +549,7 @@ public sealed class ProtocolAer:MonoBehaviour
             if(selected)Border(new Rect(shape.x-6,shape.y-6,96,96),Ink,4);
             if(shape.Contains(Pointer())&&!executing&&!success)Border(new Rect(shape.x-4,shape.y-4,92,92),Sky);
         }
-        Text(new Rect(1080,575,320,29),"복원도 "+Stage.Similarity(board)+"% / "+(Stage.Weather?85:100)+"%",18,Blue,true);
+        Text(new Rect(1080,575,320,29),"복원도 "+Stage.Similarity(board)+"% / "+Stage.ClearPercent+"%",18,Blue,true);
         if(Button(new Rect(1080,620,320,57),executing?"실행 중…":"실행",!executing&&!success&&held<0&&board.Pieces.Count>0,true))Execute();
         if(Button(new Rect(1080,691,153,38),"되돌리기",board.Pieces.Count>0&&!executing&&!success))Undo();
         if(Button(new Rect(1247,691,153,38),"초기화",!executing&&!success))ResetBoard();
@@ -768,7 +769,7 @@ public sealed class ProtocolAer:MonoBehaviour
             foreach(var step in Stage.Solution)
             {
                 int tray=TrayActions().IndexOf(step.Action);if(tray<0||!TrySelectBlockAt(TrayBlock(tray).center))throw new Exception("Clicking the module must select it");
-                for(int i=0;i<step.Turns;i++)Rotate(1);hover=step.Cells()[0];if(!Place())throw new Exception("Known tutorial solution rejected");
+                if(step.Mirrored)Mirror();for(int i=0;i<step.Turns;i++)Rotate(1);hover=step.Cells()[0];if(!Place())throw new Exception("Known tutorial solution rejected");
             }
             if(TrayActions().Count!=typeCount)throw new Exception("Placing pieces must not consume tray icons");
             CheckPreviewMaterial(false);

@@ -87,7 +87,7 @@ public static class AerBuilder
             int unlock=action==0?11:action==1?10:action==2?8:action==3?5:0;
             for(int i=0;i<AerStages.All.Length;i++)
             {
-                bool expected=i==10?(action==4||action==3||action==1):i==11?(action==4||action==2||action==0):i>=unlock;
+                bool expected=i==6?action==3:i==10?(action==4||action==3||action==1):i==11?(action==4||action==2||action==0):i>=unlock;
                 if(AerStages.All[i].Allows(action)!=expected)throw new Exception("Stage teaching set/unlock timing changed");
             }
         }
@@ -105,6 +105,19 @@ public static class AerBuilder
             var without=new EveningBoard();foreach(var step in control.Solution)if(step.Action!=action)without.TryPlace(step.Action,step.Cells(),out _);
             if(control.Complete(without))throw new Exception("Each O I T type must contribute to the reference reconstruction");
         }
+        // The L-only teaching set keeps the old relay target exactly.
+        var oldRelay=new AerStage("previous relay","TEST","",new AerStage.Step(4,1,1),new AerStage.Step(4,0,2),new AerStage.Step(3,1,0,2),new AerStage.Step(3,2,1,1));
+        var relay=AerStages.All[6];
+        if(relay.SupplyOf(3)!=4)throw new Exception("Relay must have four L in its example solution");
+        for(int x=0;x<5;x++)for(int y=0;y<5;y++)if(relay.Target[x,y]!=oldRelay.Target[x,y])throw new Exception("L-only relay changed the target");
+        var nine=new AerStage.Step[9];var ten=new AerStage.Step[10];
+        for(int i=0;i<10;i++){ten[i]=new AerStage.Step(4,0,0);if(i<9)nine[i]=ten[i];}
+        var final89=new AerStage("cutoff","WEATHER-02","",nine);var first89=new AerStage("cutoff","WEATHER-01","",nine);var final90=new AerStage("cutoff","WEATHER-02","",ten);
+        var eight=new EveningBoard();for(int i=0;i<8;i++)Add(eight,4,0,0);
+        if(final89.Similarity(eight)!=89||final89.Complete(eight)||!first89.Complete(eight))throw new Exception("Final 90 / first weather 85 thresholds incorrect");
+        Add(eight,4,0,0);
+        if(final90.Similarity(eight)!=90||!final90.Complete(eight))throw new Exception("Final must accept 90 percent");
+        if(AerStages.All[12].ClearPercent!=90||AerStages.All[7].ClearPercent!=85)throw new Exception("Weather stage thresholds changed");
         var unlimited=new EveningBoard();for(int i=0;i<100;i++)if(!unlimited.TryPlace(4,(Vector2Int[])EveningBoard.Shapes[4].Clone(),out _))throw new Exception("Unexpected piece cap");
         if(unlimited.MaxHeight!=100)throw new Exception("Unlimited overlap failed");
         var empty=new EveningBoard();Add(empty,0,0,0);Add(empty,1,0,0);
