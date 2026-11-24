@@ -37,15 +37,15 @@ public sealed class AerStage
     }
     public int SupplyOf(int action){int n=0;foreach(var step in Solution)if(step.Action==action)n++;return n;}
     // Unlocks follow region progress, not the number of pieces in an example solution.
-    public int RequiredAction=>Code=="NAME-03"?3:Code=="NAME-05"?2:Code=="NAME-07"?1:Code=="NAME-08"?0:-1;
+    public int RequiredAction=>Code=="NAME-03"?3:Code=="NAME-05"?2:Code=="NAME-07"?0:Code=="NAME-08"?1:-1;
     public bool Allows(int action)
     {
         // Stage-specific teaching sets.
         if(Code=="NAME-04")return action==3;
-        if(Code=="NAME-07")return action==4||action==3||action==1;
-        if(Code=="NAME-08")return action==4||action==2||action==0;
+        if(Code=="NAME-07")return action==4||action==2||action==0;
+        if(Code=="NAME-08")return action==4||action==3||action==1;
         int index=Array.IndexOf(AerStages.All,this);
-        return action==4||action==3&&index>=5||action==2&&index>=8||action==1&&index>=10||action==0&&index>=11;
+        return action==4||action==3&&index>=5||action==2&&index>=8||action==1&&index>=11||action==0&&index>=10;
     }
     public int Remaining(EveningBoard board,int action)=>LimitedSupply?Math.Max(0,SupplyOf(action)-board.Count(action)):-1;
     public bool CanPlace(EveningBoard board,int action)=>Allows(action)&&(!LimitedSupply||Remaining(board,action)>0);
@@ -82,8 +82,8 @@ public static class AerStages
         // One extra O overlap and one vertical I; fewer competing orientations.
         new AerStage("급수 관리소","NAME-06","",M(4,1,1),M(4,2,1),M(3,0,1),M(2,3,0,1),M(4,2,2)),
         // Each introduction uses three ordinary pieces and one local operator.
-        new AerStage("바람길 제어소","NAME-07","",M(4,1,1),M(4,2,1),M(3,0,1),M(1,1,2)),
-        new AerStage("환경 제어실","NAME-08","",M(4,1,1),M(4,2,1),M(2,0,3),M(0,0,1)),
+        new AerStage("바람길 제어소","NAME-07","",M(4,1,1),M(4,2,1),M(2,0,3),M(0,0,1)),
+        new AerStage("환경 제어실","NAME-08","",M(4,1,1),M(4,2,1),M(3,0,1),M(1,1,2)),
         // Both local effects matter; their two shared cells retain raw heights.
         new AerStage("강수 복원","WEATHER-02","복원도 90% 이상",M(4,1,1),M(4,2,1),M(3,0,1),M(2,0,2),M(1,1,2),M(0,0,2))
     };

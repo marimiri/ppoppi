@@ -613,7 +613,7 @@ public sealed class ProtocolAer:MonoBehaviour
     {
         int a=newMino;Modal(new Rect(380,205,680,480),"",EveningBoard.Names[a]+" 미노 추가");
         DrawMino(new Rect(440,345,140,140),a);
-        string effect=a==1?"덮은 네 칸을 그중 가장 낮은 높이로 맞춘다.\n기준은 효과 적용 전 높이.":a==0?"덮은 네 칸을 그중 가장 높은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":"덮는 칸마다 높이 +1";
+        string effect=a==1?"덮은 네 칸을 그중 가장 낮은 높이로 맞춘다.\nS와 T가 겹친 칸은 원래 높이를 유지한다.\n기준은 효과 적용 전 높이.":a==0?"덮은 네 칸을 그중 가장 높은 높이로 맞춘다.\n기준은 효과 적용 전 높이.":"덮는 칸마다 높이 +1";
         Text(new Rect(625,335,390,160),effect,20,Ink,true);
         if(Button(new Rect(420,565,600,65),"확인",true,true)){knownMinos.Add(a);newMino=-1;}
     }
@@ -753,7 +753,7 @@ public sealed class ProtocolAer:MonoBehaviour
                 if(board.Pieces.Count!=count+1||held>=0)throw new Exception("Following the hint click did not place its mino");
             }
             if(!Stage.Complete(board))throw new Exception("Following hints did not solve stage "+n);
-            if(n==10&&(board.Count(1)==0||!Stage.RequiredMinoUsed(board)))throw new Exception("Wind hints did not require meaningful S use");
+            if((n==10||n==11)&&(board.Count(Stage.RequiredAction)==0||!Stage.RequiredMinoUsed(board)))throw new Exception("Introduction hints must use the newly introduced operator");
         }
         EnterStage(12);newMino=-1;Select(4);hover=new Vector2Int(0,3);Place();
         RequestHint();
@@ -765,11 +765,15 @@ public sealed class ProtocolAer:MonoBehaviour
 
         EnterStage(1);RequestHint();onGrid=true;hover=hintAnchor;Place();Undo();RequestHint();
         if(hint!=0||board.Pieces.Count!=0)throw new Exception("Hints must recompute after undo");
-        EnterStage(10);newMino=-1;
-        foreach(var step in new[]{new AerStage.Step(3,0,0,2),new AerStage.Step(4,1,1),new AerStage.Step(3,1,2,2),new AerStage.Step(3,2,2,2)})board.TryPlace(step.Action,step.Cells(),out _);
-        Rebuild();Execute();if(executing||success||cleared[10]||!message.Contains("S"))throw new Exception("S-free wind attempt bypassed execution gate");
+        foreach(int introIndex in new[]{10,11})
+        {
+            EnterStage(introIndex);newMino=-1;
+            foreach(var step in Stage.Solution)if(step.Action!=Stage.RequiredAction)board.TryPlace(step.Action,step.Cells(),out _);
+            Rebuild();Execute();
+            if(executing||success||cleared[introIndex]||!message.Contains(EveningBoard.Names[Stage.RequiredAction]))throw new Exception("Operator-free introduction attempt bypassed execution gate");
+        }
         EnterStage(0);
-        Debug.Log("AER_HINTS_PASSED: all 13 stages solved through production hints/click anchors; rotation and S/T types; duplicate placements; wrong-plan correction; undo; S-free wind rejected");
+        Debug.Log("AER_HINTS_PASSED: all 13 stages solved through production hints/click anchors; rotation and S/T types; duplicate placements; wrong-plan correction; undo; operator-free introductions rejected");
     }
     IEnumerator CheckStockInteraction(string directory)
     {

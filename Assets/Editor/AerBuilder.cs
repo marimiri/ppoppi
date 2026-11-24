@@ -59,7 +59,7 @@ public static class AerBuilder
         var test=new EveningBoard();if(test.TryPlace(4,new[]{new Vector2Int(4,4),new Vector2Int(5,4),new Vector2Int(4,5),new Vector2Int(5,5)},out _))throw new Exception("Boundary violation accepted");
         foreach(var at in new[]{new Vector2Int(1,1),new Vector2Int(1,1)}){var cells=(Vector2Int[])EveningBoard.Shapes[4].Clone();for(int i=0;i<4;i++)cells[i]+=at;test.TryPlace(4,cells,out _);}
         if(test.Heights()[1,1]!=2||test.Coverage!=4||test.MaxHeight!=2)throw new Exception("Overlap must become height");
-        foreach(var pair in new[]{new[]{5,3},new[]{8,2},new[]{10,1},new[]{11,0}})
+        foreach(var pair in new[]{new[]{5,3},new[]{8,2},new[]{10,0},new[]{11,1}})
         {
             var stage=AerStages.All[pair[0]];if(stage.RequiredAction!=pair[1]||stage.SupplyOf(pair[1])==0)throw new Exception("New mino must be required");
             var missing=new EveningBoard();foreach(var step in stage.Solution)if(step.Action!=pair[1])missing.TryPlace(step.Action,step.Cells(),out _);
@@ -84,26 +84,26 @@ public static class AerBuilder
         if(rotations!=1)throw new Exception("Waterworks must preserve one rotation task");
         foreach(int action in new[]{0,1,2,3,4})
         {
-            int unlock=action==0?11:action==1?10:action==2?8:action==3?5:0;
+            int unlock=action==0?10:action==1?11:action==2?8:action==3?5:0;
             for(int i=0;i<AerStages.All.Length;i++)
             {
-                bool expected=i==6?action==3:i==10?(action==4||action==3||action==1):i==11?(action==4||action==2||action==0):i>=unlock;
+                bool expected=i==6?action==3:i==10?(action==4||action==2||action==0):i==11?(action==4||action==3||action==1):i>=unlock;
                 if(AerStages.All[i].Allows(action)!=expected)throw new Exception("Stage teaching set/unlock timing changed");
             }
         }
-        var windProof=new EveningBoard();
-        foreach(var step in AerStages.All[10].Solution)
+        var sIntro=AerStages.All[11];var sProof=new EveningBoard();
+        foreach(var step in sIntro.Solution)
         {
-            if(step.Action==2)throw new Exception("Windway teaching solution must not use I");
-            windProof.TryPlace(step.Action,step.Cells(),out _);
+            if(step.Action==2||step.Action==0)throw new Exception("S introduction should provide only O L S");
+            sProof.TryPlace(step.Action,step.Cells(),out _);
         }
-        if(AerStages.All[10].Similarity(windProof)!=100||!AerStages.All[10].Complete(windProof))throw new Exception("Windway must remain solvable at 100% without I");
-        var control=AerStages.All[11];
-        if(control.SupplyOf(4)!=2||control.SupplyOf(2)!=1||control.SupplyOf(0)!=1)throw new Exception("Control room must use O O I T");
+        if(sIntro.Name!="환경 제어실"||sIntro.Similarity(sProof)!=100||!sIntro.Complete(sProof))throw new Exception("S stage order/name or solution mismatch");
+        var tIntro=AerStages.All[10];
+        if(tIntro.Name!="바람길 제어소"||tIntro.SupplyOf(4)!=2||tIntro.SupplyOf(2)!=1||tIntro.SupplyOf(0)!=1)throw new Exception("T must come first with O O I T at the unchanged building name");
         foreach(int action in new[]{4,2,0})
         {
-            var without=new EveningBoard();foreach(var step in control.Solution)if(step.Action!=action)without.TryPlace(step.Action,step.Cells(),out _);
-            if(control.Complete(without))throw new Exception("Each O I T type must contribute to the reference reconstruction");
+            var without=new EveningBoard();foreach(var step in tIntro.Solution)if(step.Action!=action)without.TryPlace(step.Action,step.Cells(),out _);
+            if(tIntro.Complete(without))throw new Exception("Each O I T type must contribute to the reference reconstruction");
         }
         // The L-only teaching set keeps the old relay target exactly.
         var oldRelay=new AerStage("previous relay","TEST","",new AerStage.Step(4,1,1),new AerStage.Step(4,0,2),new AerStage.Step(3,1,0,2),new AerStage.Step(3,2,1,1));
